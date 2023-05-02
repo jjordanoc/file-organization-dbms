@@ -2,7 +2,6 @@
 C:/Users/Jose/Desktop/proyectobd2/GUI/ExtendibleHashFile.h
 C:/Users/Jose/Desktop/proyectobd2/GUI/MovieRecord.h
 C:/Users/Jose/Desktop/proyectobd2/GUI/parser.h
-C:/Users/Jose/Desktop/proyectobd2/GUI/main.cpp
 C:/Users/Jose/Desktop/proyectobd2/GUI/widget.h
  mmc:Q_OBJECT
  mdp:C:/Users/Jose/Desktop/proyectobd2/GUI/widget.h
@@ -382,4 +381,5 @@ C:/Users/Jose/Desktop/proyectobd2/GUI/widget.h
  mdp:D:/Qt/Tools/mingw1120_64/x86_64-w64-mingw32/include/vadefs.h
  mdp:D:/Qt/Tools/mingw1120_64/x86_64-w64-mingw32/include/wchar.h
  mdp:D:/Qt/Tools/mingw1120_64/x86_64-w64-mingw32/include/wctype.h
+C:/Users/Jose/Desktop/proyectobd2/GUI/main.cpp
 C:/Users/Jose/Desktop/proyectobd2/GUI/widget.cpp
