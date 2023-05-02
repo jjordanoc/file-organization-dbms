@@ -16,7 +16,7 @@ set(PROJECT_SOURCES
         main.cpp
         widget.cpp
         parser.h
-        ExtendibleHashFile.h
+        ExtendibleHashFile.hpp
         MovieRecord.h
         widget.h
         widget.ui

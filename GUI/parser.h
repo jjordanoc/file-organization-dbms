@@ -97,9 +97,10 @@ struct parserSQL {
         pos += 1;
     }
 
-    static void error() {
-        std::cout << "\nError: Cadena invalida\n";
-        exit(1);
+    void error() {
+        pos = 0;
+        parsero.killSelf();
+        throw std::runtime_error("Cadena invalida.");
     }
 
     void match(const std::string &expectedToken) {
@@ -133,7 +134,7 @@ struct parserSQL {
 
     void value() {
 
-        if (regex_match(token, std::regex("([0-9.a-zA-Z]*)")) ||
+        if (regex_match(token, std::regex("(-?[0-9.a-zA-Z]*)")) ||
             regex_match(token, std::regex(R"((["(][()\s+a-z,.0-9A-Z:;\"\']*[")]))"))) {
             getToken();
         } else {
@@ -344,7 +345,7 @@ struct parserSQL {
 
         if (token == "$") std::cout << "\nCadena valida\n";
         else error();
-
+        pos = 0;
         return parsero;
     }
 };

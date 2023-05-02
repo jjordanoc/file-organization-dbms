@@ -10,6 +10,7 @@
 #include <QVBoxLayout>
 #include <QLineEdit>
 #include "parser.h"
+#include "MovieRecord.h"
 QT_BEGIN_NAMESPACE
 namespace Ui { class Widget; }
 QT_END_NAMESPACE
@@ -36,6 +37,7 @@ private:
     QLabel * result;
     QPushButton *boton;
     parserSQL parsero;
+    void displayRecords(std::vector<MovieRecord> &);
 };
 
 #endif // WIDGET_H
