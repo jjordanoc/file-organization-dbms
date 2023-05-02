@@ -69,7 +69,6 @@ void Widget::SetQuery(){
     else if(queryResult.queryType == "CREATE"){
         if(queryResult.selectedAttribute == "dataId"){
             if(queryResult.indexValue == "Hash"){
-                std::cout << "Hola" << std::endl;
                 std::function<int(MovieRecord &)> index = [=](MovieRecord &record) {
                     return record.dataId;
                 };
