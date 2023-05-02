@@ -1,4 +1,7 @@
 #include "widget.h"
+#include "parser.h"
+#include "ExtendibleHashFile.h"
+#include "MovieRecord.h"
 #include <QtGui>
 #include <QHeaderView>
 Widget::Widget(QWidget *parent)
@@ -35,7 +38,37 @@ Widget::~Widget()
 
 void Widget::SetQuery(){
     result->setText(consulta->text());
+    parserResult queryResult;
+    queryResult = parsero.query(consulta->text().toStdString());
 
+    if(queryResult.queryType == "SELECT"){
+        if(queryResult.selectedAttribute == "dataId"){
+            std::function<int(MovieRecord &)> index = [=](MovieRecord &record) {
+                return record.dataId;
+            };
+            ExtendibleHashFile<int, MovieRecord> extendible_hash_data_id{"movies_and_series.dat", "data_id", true, index};
+            if(extendible_hash_data_id){
+                auto res = extendible_hash_data_id.search(stoi(queryResult.atributos[queryResult.selectedAttribute]));
+                for (auto &record: res) {
+                    std::cout << record.to_string() << std::endl;
+                }
+            }
+
+        }
+
+    }
+    else if(queryResult.queryType == "CREATE"){
+        if(queryResult.selectedAttribute == "dataId"){
+            if(queryResult.indexValue == "Hash"){
+                std::cout << "Hola" << std::endl;
+                std::function<int(MovieRecord &)> index = [=](MovieRecord &record) {
+                    return record.dataId;
+                };
+                ExtendibleHashFile<int, MovieRecord> extendible_hash_data_id{"movies_and_series.dat", "data_id", true, index};
+                extendible_hash_data_id.create_index();
+            }
+        }
+    }
 }
 
 

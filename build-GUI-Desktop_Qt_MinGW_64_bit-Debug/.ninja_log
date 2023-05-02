@@ -1,0 +1,19 @@
+# ninja log v5
+12	193	7046943162477751	Prueba3_autogen/mocs_compilation.cpp	db9bb98936290c98
+1249	6787	7046934701975844	CMakeFiles/Prueba3.dir/Prueba3_autogen/mocs_compilation.cpp.obj	3428e17fd6fad6c4
+12	193	7046943162477751	Prueba3_autogen/timestamp	db9bb98936290c98
+12	193	7046943162477751	C:/Users/Jose/Desktop/proyectobd2/build-GUI-Desktop_Qt_MinGW_64_bit-Debug/Prueba3_autogen/timestamp	db9bb98936290c98
+1255	6817	7046934702280859	CMakeFiles/Prueba3.dir/main.cpp.obj	ead5387a1863e576
+12	193	7046943162477751	C:/Users/Jose/Desktop/proyectobd2/build-GUI-Desktop_Qt_MinGW_64_bit-Debug/Prueba3_autogen/mocs_compilation.cpp	db9bb98936290c98
+303	10125	7046940482960803	CMakeFiles/Prueba3.dir/widget.cpp.obj	58b6aec058159880
+10125	13761	7046940519360813	Prueba3.exe	dda69562ac056c8f
+2	597	7046943175631409	build.ninja	b0bc8a99846a7ec8
+0	26	0	CMakeFiles/clean.additional	cee7e56548ea36fa
+26	39	0	clean	101d0f6048d5fe99
+858	917	7046890799923194	CMakeFiles/Prueba3.dir/parserSQL.cpp.obj	d80a3723b1484054
+15	273	7046943893094571	Prueba3_autogen/timestamp	db9bb98936290c98
+15	273	7046943893094571	Prueba3_autogen/mocs_compilation.cpp	db9bb98936290c98
+15	273	7046943893094571	C:/Users/Jose/Desktop/proyectobd2/build-GUI-Desktop_Qt_MinGW_64_bit-Debug/Prueba3_autogen/timestamp	db9bb98936290c98
+15	273	7046943893094571	C:/Users/Jose/Desktop/proyectobd2/build-GUI-Desktop_Qt_MinGW_64_bit-Debug/Prueba3_autogen/mocs_compilation.cpp	db9bb98936290c98
+278	10900	7046943999279571	CMakeFiles/Prueba3.dir/widget.cpp.obj	58b6aec058159880
+10900	14534	7046944035659343	Prueba3.exe	dda69562ac056c8f

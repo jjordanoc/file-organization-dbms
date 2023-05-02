@@ -10,9 +10,5 @@ int main(int argc, char *argv[])
     Widget w;
 
     w.show();
-    fs::path p = fs::current_path();
-    int width = w.width();
-    int height = w.height();
-    std::cout << width << " " << height;
     return a.exec();
 }

@@ -9,6 +9,7 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QLineEdit>
+#include "parser.h"
 QT_BEGIN_NAMESPACE
 namespace Ui { class Widget; }
 QT_END_NAMESPACE
@@ -34,7 +35,7 @@ private:
     QLineEdit* consulta;
     QLabel * result;
     QPushButton *boton;
-
+    parserSQL parsero;
 };
 
 #endif // WIDGET_H
