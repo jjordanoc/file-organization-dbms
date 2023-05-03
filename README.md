@@ -2,7 +2,15 @@
 
 ## Introducción 
 
-Para este proyecto, se nos ha pedido crear y manipular un DataSet usando estrategias de organización de archivos, de tal manera que podamos comprobar su eficacia y desenvolvimiento reales. 
+Para este proyecto, se nos ha pedido crear y manipular un DataSet usando estrategias de organización de archivos.
+
+### Objetivos
+#### Principal
+-Conocer el funciomaniento de la manipulación de **metadata** en una base de datos.
+#### Secundario
+-Identificar las ventajas y desventajas de cada estrategia utilizada. 
+-Analizar el comportamiento computacional al implementar una base de datos.
+-Comprender como funciona la interacción usuario-servidor mediante la implementación de una GUI.
 
 ### Organización de Archivos
 
