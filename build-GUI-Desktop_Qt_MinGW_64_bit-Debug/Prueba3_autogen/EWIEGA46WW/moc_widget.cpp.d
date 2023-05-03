@@ -1,5 +1,6 @@
 C:/Users/Jose/Desktop/proyectobd2/build-GUI-Desktop_Qt_MinGW_64_bit-Debug/Prueba3_autogen/EWIEGA46WW/moc_widget.cpp: C:/Users/Jose/Desktop/proyectobd2/GUI/widget.h \
   C:/Users/Jose/Desktop/proyectobd2/build-GUI-Desktop_Qt_MinGW_64_bit-Debug/Prueba3_autogen/moc_predefs.h \
+  C:/Users/Jose/Desktop/proyectobd2/GUI/MovieRecord.h \
   C:/Users/Jose/Desktop/proyectobd2/GUI/parser.h \
   D:/Qt/6.4.1/mingw_64/include/QtCore/qabstractitemmodel.h \
   D:/Qt/6.4.1/mingw_64/include/QtCore/qalgorithms.h \
@@ -224,6 +225,7 @@ C:/Users/Jose/Desktop/proyectobd2/build-GUI-Desktop_Qt_MinGW_64_bit-Debug/Prueba
   D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/bits/shared_ptr_atomic.h \
   D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/bits/shared_ptr_base.h \
   D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/bits/specfun.h \
+  D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/bits/sstream.tcc \
   D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/bits/std_abs.h \
   D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/bits/std_function.h \
   D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/bits/std_mutex.h \
@@ -301,6 +303,7 @@ C:/Users/Jose/Desktop/proyectobd2/build-GUI-Desktop_Qt_MinGW_64_bit-Debug/Prueba
   D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/pstl/glue_memory_defs.h \
   D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/pstl/glue_numeric_defs.h \
   D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/regex \
+  D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/sstream \
   D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/stdexcept \
   D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/stdlib.h \
   D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/streambuf \

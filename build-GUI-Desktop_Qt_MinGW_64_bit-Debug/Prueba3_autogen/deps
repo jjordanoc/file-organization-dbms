@@ -31,7 +31,7 @@ Prueba3_autogen/timestamp: \
 	C:/Program\ Files/CMake/share/cmake-3.24/Modules/Platform/Windows.cmake \
 	C:/Program\ Files/CMake/share/cmake-3.24/Modules/Platform/WindowsPaths.cmake \
 	C:/Users/Jose/Desktop/proyectobd2/GUI/CMakeLists.txt \
-	C:/Users/Jose/Desktop/proyectobd2/GUI/ExtendibleHashFile.h \
+	C:/Users/Jose/Desktop/proyectobd2/GUI/ExtendibleHashFile.hpp \
 	C:/Users/Jose/Desktop/proyectobd2/GUI/MovieRecord.h \
 	C:/Users/Jose/Desktop/proyectobd2/GUI/main.cpp \
 	C:/Users/Jose/Desktop/proyectobd2/GUI/parser.h \
@@ -398,6 +398,7 @@ Prueba3_autogen/timestamp: \
 	D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/bits/shared_ptr_atomic.h \
 	D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/bits/shared_ptr_base.h \
 	D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/bits/specfun.h \
+	D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/bits/sstream.tcc \
 	D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/bits/std_abs.h \
 	D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/bits/std_function.h \
 	D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/bits/std_mutex.h \
@@ -475,6 +476,7 @@ Prueba3_autogen/timestamp: \
 	D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/pstl/glue_memory_defs.h \
 	D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/pstl/glue_numeric_defs.h \
 	D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/regex \
+	D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/sstream \
 	D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/stdexcept \
 	D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/stdlib.h \
 	D:/Qt/Tools/mingw1120_64/lib/gcc/x86_64-w64-mingw32/11.2.0/include/c++/streambuf \

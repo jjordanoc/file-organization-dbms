@@ -23,11 +23,6 @@ file.open(file_name, std::ios::app);                  \
         throw std::runtime_error("Could not open file."); \
 }                                                     \
     file.close();
-/*
- * Inspired by answer 2 on
- * https://stackoverflow.com/questions/3046889/optional-parameters-with-c-macros
- * Defines a macro with optional parameters for seeking both file pointers at once
- */
 
 #define SEEK_ALL(file, pos) \
 file.seekg(pos);        \
@@ -246,6 +241,10 @@ public:
         throw std::runtime_error("Could not find given hash sequence on ExtendibleHash.");
     }
 
+    void update_entry_bucket(const std::size_t &entry_index, const long &new_bucket_ref) {
+        hash_entries[entry_index].bucket_ref = new_bucket_ref;
+    }
+
     /*
      * Splits an entry.
      * Returns a pair containing a bool which indicates if the split was successful (first), and a number indicating the old local depth (second).
@@ -381,12 +380,9 @@ public:
 
 
     /*
-     * Constructs the hash index file.
+     * Constructs the hash index file from a fixed length binary data file.
      * It creates 2 files: The directory file (.ehashdir) and the hash index (.ehash).
-     * Throws an exception if one of these files is empty.
-     * Accesses to disk:
-     * - If the index file hasn't yet been created: O(n) where n is the total number of records in the data file
-     * - If the index file has already been created: O(1)
+     * Accesses to disk: O(n) where n is the total number of records in the data file.
      */
     void create_index() {
         // Create needed files if they don't exist
@@ -446,7 +442,9 @@ public:
                     SEEK_ALL(raw_file, bucket.records[i].record_ref)
                     RecordType record{};
                     raw_file.read((char *) &record, sizeof(record));
-                    result.push_back(record);
+                    if (!record.removed) {
+                        result.push_back(record);
+                    }
                     // If primary key, stop searching
                     if (primary_key) {
                         stop = true;
@@ -469,11 +467,11 @@ public:
 
 
     /*
-     * Inserts a given key in the first bucket with available space in the overflow chain.
+     * Inserts a given key in the hash index.
+     * When overflow happens, a new bucket is pushed to the front of the overflow chain and linked, to allow for more efficient insertions.
      * Throws an exception if the key of the record to be inserted is already present and the index is for a primary key.
-     * If none of the buckets in the overflow chain have available space, it creates a new bucket.
      * Accesses to disk: O(k + global_depth) where k is the number of buckets in an overflow chain,
-     * and global_depth is the maximum depth of the index (number of bits in the binary sequences)
+     * and global_depth is the maximum depth of the index (number of bits in the binary sequences).
      */
     void insert(RecordType &record, long record_ref) {
         // If the attribute is a primary key, we must check whether a record with the given key already exists
@@ -535,39 +533,19 @@ public:
                     insert(record, record_ref);
                     return;
                 }
-
             }
-            // Split was unsuccessful. Find overflow bucket or create one
+            // Split was unsuccessful. Create a new bucket.
             else {
-                long parent_bucket_ref = bucket_ref;
-                while (true) {
-                    // Go to the next overflow bucket and check if it's full
-                    if (bucket.next != -1) {
-                        parent_bucket_ref = bucket.next;
-                        SEEK_ALL(hash_file, bucket.next)
-                        hash_file.read((char *) &bucket, sizeof(bucket));
-                        // If the next overflow bucket is not full, insert to it
-                        if (bucket.size < MAX_RECORDS_PER_BUCKET) {
-                            SEEK_ALL(hash_file, parent_bucket_ref)
-                            bucket.records[bucket.size++] = BucketPair<KeyType>{index(record), record_ref};
-                            hash_file.write((char *) &bucket, sizeof(bucket));
-                            break;
-                        }
-                    }
-                    // Create new overflow bucket and reference it in the parent bucket
-                    else {
-                        // Create new bucket
-                        SEEK_ALL_RELATIVE(hash_file, 0, std::ios::end)
-                        bucket_0.records[bucket_0.size++] = BucketPair<KeyType>{index(record), record_ref};
-                        long new_bucket_ref = TELL(hash_file);
-                        hash_file.write((char *) &bucket_0, sizeof(bucket_0));
-                        // Update parent reference
-                        SEEK_ALL(hash_file, parent_bucket_ref)
-                        bucket.next = new_bucket_ref;
-                        hash_file.write((char *) &bucket, sizeof(bucket));
-                        break;
-                    }
-                }
+                // Create new bucket
+                SEEK_ALL_RELATIVE(hash_file, 0, std::ios::end)
+                bucket_0.records[bucket_0.size++] = BucketPair<KeyType>{index(record), record_ref};
+                // Reference the parent (push front)
+                bucket_0.next = bucket_ref;
+                long new_bucket_ref = TELL(hash_file);
+                hash_file.write((char *) &bucket_0, sizeof(bucket_0));
+                // Put reference to the new bucket in the directory
+                hash_index->update_entry_bucket(entry_index, new_bucket_ref);
+                write_directory();
             }
         }
         hash_file.close();

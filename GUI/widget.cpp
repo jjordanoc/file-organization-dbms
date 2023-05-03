@@ -4,6 +4,73 @@
 #include "MovieRecord.h"
 #include <QtGui>
 #include <QHeaderView>
+
+#define SELECT_BY_ATTRIBUTE(attribute1, attribute2, attributeType, isPrimaryKey) \
+if(queryResult.selectedAttribute == attribute2){ \
+    std::function<attributeType(MovieRecord &)> index = [=](MovieRecord &record) { return record.attribute1; }; \
+    ExtendibleHashFile<attributeType, MovieRecord> extendible_hash_data_id{"movies_and_series.dat", attribute2, isPrimaryKey, index}; \
+    if(extendible_hash_data_id){ \
+        auto res = extendible_hash_data_id.search(stoi(queryResult.atributos[queryResult.selectedAttribute])); \
+        this->displayRecords(res); \
+        for (auto &record: res) { \
+            std::cout << record.to_string() << std::endl; \
+        } \
+    } \
+    else{ \
+        std::cout << "Busqueda lineal suas" << std::endl; \
+    } \
+}
+
+#define SELECT_BY_ATTRIBUTE_CHAR(attribute1, attribute2, attributeCharSize, isPrimaryKey) \
+if(queryResult.selectedAttribute == attribute2){ \
+    std::function<bool(char[attributeCharSize], char[attributeCharSize])> equal = [](char a[attributeCharSize], char b[attributeCharSize]) -> bool { return std::string(a) == std::string(b); }; \
+    std::function<char *(MovieRecord &)> index = [=](MovieRecord &record) { return record.attribute1; }; \
+    std::hash<std::string> hasher; \
+    std::function<std::size_t(char[attributeCharSize])> hash = [&hasher](char key[attributeCharSize]) { return hasher(std::string(key)); }; \
+    ExtendibleHashFile<char[attributeCharSize], MovieRecord, attributeCharSize, std::function<char *(MovieRecord &)>, std::function<bool(char[attributeCharSize], char[attributeCharSize])>, std::function<std::size_t(char[attributeCharSize])>> extendible_hash_index{"movies_and_series.dat", attribute2, isPrimaryKey, index, equal, hash}; \
+    if(extendible_hash_index){ \
+        std::string tmp = queryResult.atributos[queryResult.selectedAttribute]; \
+        std::cout << tmp << std::endl; \
+        char str[attributeCharSize]; \
+        int cont = 0; \
+        for(int i = 0; i < tmp.length(); i++, cont++){ \
+            str[i] = tmp[i]; \
+        } \
+        str[cont] = '\\'; \
+        str[cont+1] = '0'; \
+        auto res = extendible_hash_index.search(str); \
+        this->displayRecords(res); \
+        for (auto &record: res) { \
+            std::cout << record.to_string() << std::endl; \
+        } \
+    } \
+    else{ \
+            std::cout << "Busqueda lineal suas" << std::endl; \
+    } \
+}
+
+#define CREATE_INDEX_BY_ATTRIBUTE(attribute1, attribute2, attributeType, isPrimaryKey) \
+if(queryResult.selectedAttribute == attribute2){ \
+    if(queryResult.indexValue == "Hash"){ \
+        std::function<attributeType(MovieRecord &)> index = [=](MovieRecord &record) { return record.attribute1; }; \
+        ExtendibleHashFile<attributeType, MovieRecord> extendible_hash_index{"movies_and_series.dat", attribute2, isPrimaryKey, index}; \
+        extendible_hash_index.create_index(); \
+    } \
+}
+
+#define CREATE_INDEX_BY_ATTRIBUTE_CHAR(attribute1, attribute2, attributeCharSize, isPrimaryKey) \
+if(queryResult.selectedAttribute == attribute2){ \
+    if(queryResult.indexValue == "Hash"){ \
+        std::function<bool(char[attributeCharSize], char[attributeCharSize])> equal = [](char a[attributeCharSize], char b[attributeCharSize]) -> bool { return std::string(a) == std::string(b); }; \
+        std::function<char *(MovieRecord &)> index = [=](MovieRecord &record) { return record.attribute1; }; \
+        std::hash<std::string> hasher; \
+        std::function<std::size_t(char[attributeCharSize])> hash = [&hasher](char key[attributeCharSize]) { return hasher(std::string(key)); }; \
+        ExtendibleHashFile<char[attributeCharSize], MovieRecord, attributeCharSize, std::function<char *(MovieRecord &)>, std::function<bool(char[attributeCharSize], char[attributeCharSize])>, std::function<std::size_t(char[attributeCharSize])>> extendible_hash_index{"movies_and_series.dat", attribute2, isPrimaryKey, index, equal, hash}; \
+        extendible_hash_index.create_index(); \
+    } \
+}
+
+
 Widget::Widget(QWidget *parent)
     : QWidget(parent)
 {
@@ -49,33 +116,30 @@ void Widget::SetQuery(){
     }
 
     if(queryResult.queryType == "SELECT"){
-        if(queryResult.selectedAttribute == "dataId"){
-            std::function<int(MovieRecord &)> index = [=](MovieRecord &record) {
-                return record.dataId;
-            };
-            ExtendibleHashFile<int, MovieRecord> extendible_hash_data_id{"movies_and_series.dat", "data_id", true, index};
-            if(extendible_hash_data_id){
-                auto res = extendible_hash_data_id.search(stoi(queryResult.atributos[queryResult.selectedAttribute]));
-                this->displayRecords(res);
-                for (auto &record: res) {
-                    std::cout << record.to_string() << std::endl;
-//                    tabla->insertRow()
-                }
-            }
-
-        }
-
+        SELECT_BY_ATTRIBUTE(dataId, "dataId",int,true);
+        SELECT_BY_ATTRIBUTE_CHAR(contentType, "contentType",16,false);
+        SELECT_BY_ATTRIBUTE_CHAR(title, "title",256, false);
+        SELECT_BY_ATTRIBUTE(length,"length",short, false);
+        SELECT_BY_ATTRIBUTE(releaseYear, "releaseYear", short, false);
+        SELECT_BY_ATTRIBUTE(endYear, "endYear", short, false);
+        SELECT_BY_ATTRIBUTE(votes, "votes",int,false);
+        SELECT_BY_ATTRIBUTE(rating, "rating",short,false);
+        SELECT_BY_ATTRIBUTE(gross, "gross",int,false);
+        SELECT_BY_ATTRIBUTE_CHAR(certificate, "certificate", 16, false);
+        SELECT_BY_ATTRIBUTE_CHAR(description,"description", 512,false);
     }
     else if(queryResult.queryType == "CREATE"){
-        if(queryResult.selectedAttribute == "dataId"){
-            if(queryResult.indexValue == "Hash"){
-                std::function<int(MovieRecord &)> index = [=](MovieRecord &record) {
-                    return record.dataId;
-                };
-                ExtendibleHashFile<int, MovieRecord> extendible_hash_data_id{"movies_and_series.dat", "data_id", true, index};
-                extendible_hash_data_id.create_index();
-            }
-        }
+        CREATE_INDEX_BY_ATTRIBUTE(dataId, "dataId",int,true);
+        CREATE_INDEX_BY_ATTRIBUTE_CHAR(contentType, "contentType",16,false);
+        CREATE_INDEX_BY_ATTRIBUTE_CHAR(title, "title",256, false);
+        CREATE_INDEX_BY_ATTRIBUTE(length,"length",short, false);
+        CREATE_INDEX_BY_ATTRIBUTE(releaseYear, "releaseYear", short, false);
+        CREATE_INDEX_BY_ATTRIBUTE(endYear, "endYear", short, false);
+        CREATE_INDEX_BY_ATTRIBUTE(votes, "votes",int,false);
+        CREATE_INDEX_BY_ATTRIBUTE(rating, "rating",short,false);
+        CREATE_INDEX_BY_ATTRIBUTE(gross, "gross",int,false);
+        CREATE_INDEX_BY_ATTRIBUTE_CHAR(certificate, "certificate", 16, false);
+        CREATE_INDEX_BY_ATTRIBUTE_CHAR(description,"description", 512,false);
     }
 }
 
