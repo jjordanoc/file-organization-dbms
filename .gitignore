@@ -1,0 +1,5 @@
+*.user
+*.dat
+*.ehash
+*.ehashdir
+CMakeLists.txt.user.cdf46ac
