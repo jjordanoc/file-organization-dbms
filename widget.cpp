@@ -10,7 +10,7 @@
 
 #define FILENAME "database/movies_and_series.dat"
 
-#define SELECT_BY_ATTRIBUTE(attribute1, attribute2, attributeType, isPrimaryKey) \
+#define     SELECT_BY_ATTRIBUTE(attribute1, attribute2, attributeType, isPrimaryKey) \
 if(queryResult.selectedAttribute == attribute2){ \
     std::function<attributeType(MovieRecord &)> index = [=](MovieRecord &record) { return record.attribute1; }; \
     ExtendibleHashFile<attributeType, MovieRecord> extendible_hash_index{FILENAME, attribute2, isPrimaryKey, index}; \
@@ -178,7 +178,7 @@ void Widget::execute_action()
     }
     catch(std::exception e) {
         result->setText("Sentencia SQL inválida.");
-            result->setStyleSheet("color: red;");
+        result->setStyleSheet("color: red;");
     }
     if(queryResult.queryType == "SELECT"){
         SELECT_BY_ATTRIBUTE(dataId, "dataId",int,true);
