@@ -1,6 +1,7 @@
 #include "widget.h"
 #include "parser.h"
 #include "ExtendibleHashFile.hpp"
+#include "avl.hpp"
 #include "MovieRecord.h"
 #include <QtGui>
 #include <QHeaderView>
@@ -8,14 +9,23 @@
 #define SELECT_BY_ATTRIBUTE(attribute1, attribute2, attributeType, isPrimaryKey) \
 if(queryResult.selectedAttribute == attribute2){ \
     std::function<attributeType(MovieRecord &)> index = [=](MovieRecord &record) { return record.attribute1; }; \
-    ExtendibleHashFile<attributeType, MovieRecord> extendible_hash_data_id{"movies_and_series.dat", attribute2, isPrimaryKey, index}; \
-    if(extendible_hash_data_id){ \
-        auto res = extendible_hash_data_id.search(stoi(queryResult.atributos[queryResult.selectedAttribute])); \
+    ExtendibleHashFile<attributeType, MovieRecord> extendible_hash_index{"movies_and_series.dat", attribute2, isPrimaryKey, index}; \
+    AVLFile<attributeType, MovieRecord> avl("movies_and_series.dat", "avl_indexed_by_dataId.dat", isPrimaryKey, index); \
+    if(extendible_hash_index){ \
+        auto res = extendible_hash_index.search(stoi(queryResult.atributos[queryResult.selectedAttribute])); \
         this->displayRecords(res); \
         for (auto &record: res) { \
             std::cout << record.to_string() << std::endl; \
         } \
     } \
+    else if(avl) { \
+        std::cout << "Usho AVL" << std::endl;\
+        auto res = avl.search(stoi(queryResult.atributos[queryResult.selectedAttribute])); \
+        this->displayRecords(res); \
+        for (auto &record: res) { \
+            std::cout << record.to_string() << std::endl; \
+        } \
+    }\
     else{ \
         std::cout << "Busqueda lineal suas" << std::endl; \
     } \
@@ -54,7 +64,24 @@ if(queryResult.selectedAttribute == attribute2){ \
     if(queryResult.indexValue == "Hash"){ \
         std::function<attributeType(MovieRecord &)> index = [=](MovieRecord &record) { return record.attribute1; }; \
         ExtendibleHashFile<attributeType, MovieRecord> extendible_hash_index{"movies_and_series.dat", attribute2, isPrimaryKey, index}; \
-        extendible_hash_index.create_index(); \
+        if(extendible_hash_index){ \
+        std::cout << attribute2 << " index already exists with Hash" << std::endl; \
+        }\
+        else{\
+            extendible_hash_index.create_index(); \
+        }\
+    } \
+    else if(queryResult.indexValue == "AVL"){ \
+        std::function<attributeType(MovieRecord &)> index = [](MovieRecord &movie) { return movie.attribute1; }; \
+        AVLFile<attributeType, MovieRecord> avl("movies_and_series.dat", "avl_indexed_by_dataId.dat", isPrimaryKey, index); \
+        func::clock clock; \
+        clock([&](){ \
+            if (!avl) { \
+                avl.create_index(); \
+            } else { \
+                std::cout << "AVL Index already exists" << std::endl;  \
+            } \
+        }, "Create AVL Index by data id"); \
     } \
 }
 

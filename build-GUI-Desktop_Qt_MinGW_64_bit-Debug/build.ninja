@@ -184,7 +184,7 @@ build Prueba3_autogen/timestamp Prueba3_autogen/mocs_compilation.cpp | ${cmake_n
 #############################################
 # Phony custom command for CMakeFiles\Prueba3_autogen_timestamp_deps
 
-build CMakeFiles/Prueba3_autogen_timestamp_deps | ${cmake_ninja_workdir}CMakeFiles/Prueba3_autogen_timestamp_deps: phony D$:/Qt/6.4.1/mingw_64/lib/libQt6Core.a D$:/Qt/6.4.1/mingw_64/./bin/moc.exe D$:/Qt/6.4.1/mingw_64/./bin/uic.exe D$:/Qt/6.4.1/mingw_64/lib/libQt6Widgets.a
+build CMakeFiles/Prueba3_autogen_timestamp_deps | ${cmake_ninja_workdir}CMakeFiles/Prueba3_autogen_timestamp_deps: phony D$:/Qt/6.4.1/mingw_64/lib/libQt6Core.a D$:/Qt/6.4.1/mingw_64/./bin/uic.exe D$:/Qt/6.4.1/mingw_64/./bin/moc.exe D$:/Qt/6.4.1/mingw_64/lib/libQt6Widgets.a
 
 
 #############################################
