@@ -28,10 +28,6 @@ hemos usado un dataset de Películas IMBD. Esta elección fue debida a los sigui
 - Los datos son requeridos obligatoriamente para todos los atributos menos uno: el "certificate". Esto hace que nuestro potencial de valores NULL disminuya considerablemente.
 - El DataSet solo consta de una tabla, por lo que facilita su manejo y manipulación para los índices a utilizar.
 
-
-
-## Diccionario de datos
-
 A continuación, explicamos los atributos del DataSet previamente mencionado.
 
 ```c++
