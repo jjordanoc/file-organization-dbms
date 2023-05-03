@@ -9,8 +9,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Concurrent)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Concurrent)
 
 set(PROJECT_SOURCES
         main.cpp
@@ -21,7 +21,7 @@ set(PROJECT_SOURCES
         MovieRecord.h
         widget.h
         widget.ui
-        movies_and_series.dat
+        utils.hpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -47,7 +47,7 @@ else()
     endif()
 endif()
 
-target_link_libraries(Prueba3 PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+target_link_libraries(Prueba3 PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Concurrent)
 
 set_target_properties(Prueba3 PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com

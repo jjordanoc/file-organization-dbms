@@ -5,12 +5,16 @@
 #include "MovieRecord.h"
 #include <QtGui>
 #include <QHeaderView>
+#include "utils.hpp"
+#include <QtConcurrent>
+
+#define FILENAME "database/movies_and_series.dat"
 
 #define SELECT_BY_ATTRIBUTE(attribute1, attribute2, attributeType, isPrimaryKey) \
 if(queryResult.selectedAttribute == attribute2){ \
     std::function<attributeType(MovieRecord &)> index = [=](MovieRecord &record) { return record.attribute1; }; \
-    ExtendibleHashFile<attributeType, MovieRecord> extendible_hash_index{"movies_and_series.dat", attribute2, isPrimaryKey, index}; \
-    AVLFile<attributeType, MovieRecord> avl("movies_and_series.dat", "avl_indexed_by_dataId.dat", isPrimaryKey, index); \
+    ExtendibleHashFile<attributeType, MovieRecord> extendible_hash_index{FILENAME, attribute2, isPrimaryKey, index}; \
+    AVLFile<attributeType, MovieRecord> avl(FILENAME, "avl_indexed_by_dataId.dat", isPrimaryKey, index); \
     if(extendible_hash_index){ \
         auto res = extendible_hash_index.search(stoi(queryResult.atributos[queryResult.selectedAttribute])); \
         this->displayRecords(res); \
@@ -63,7 +67,7 @@ if(queryResult.selectedAttribute == attribute2){ \
 if(queryResult.selectedAttribute == attribute2){ \
     if(queryResult.indexValue == "Hash"){ \
         std::function<attributeType(MovieRecord &)> index = [=](MovieRecord &record) { return record.attribute1; }; \
-        ExtendibleHashFile<attributeType, MovieRecord> extendible_hash_index{"movies_and_series.dat", attribute2, isPrimaryKey, index}; \
+        ExtendibleHashFile<attributeType, MovieRecord> extendible_hash_index{FILENAME, attribute2, isPrimaryKey, index}; \
         if(extendible_hash_index){ \
         std::cout << attribute2 << " index already exists with Hash" << std::endl; \
         }\
@@ -73,7 +77,7 @@ if(queryResult.selectedAttribute == attribute2){ \
     } \
     else if(queryResult.indexValue == "AVL"){ \
         std::function<attributeType(MovieRecord &)> index = [](MovieRecord &movie) { return movie.attribute1; }; \
-        AVLFile<attributeType, MovieRecord> avl("movies_and_series.dat", "avl_indexed_by_dataId.dat", isPrimaryKey, index); \
+        AVLFile<attributeType, MovieRecord> avl(FILENAME, "avl_indexed_by_dataId.dat", isPrimaryKey, index); \
         func::clock clock; \
         clock([&](){ \
             if (!avl) { \
@@ -105,8 +109,10 @@ Widget::Widget(QWidget *parent)
     setWindowState(Qt::WindowMaximized);
     global = new QVBoxLayout(this);
     H1 = new QHBoxLayout();
+    auto H2 = new QHBoxLayout();
     tabla = new QTableWidget();
     consulta = new QLineEdit();
+    tiempoResult = new QLabel();
     result = new QLabel();
     boton = new QPushButton("Enviar");
     tabla->setColumnCount(11);
@@ -116,9 +122,13 @@ Widget::Widget(QWidget *parent)
     consulta->setPlaceholderText("Ingrese consulta: ");
     H1->addWidget(consulta);
     H1->addWidget(boton);
+    H2->addWidget(result);
+    H2->addStretch();
+    H2->addWidget(tiempoResult);
+    tiempoResult->setText("0 s");
     global->addLayout(H1);
     global->addWidget(tabla);
-    global->addWidget(result);
+    global->addLayout(H2);
     //-------------------------------
     //Setear el numero de filas
     //tabla->setRowCount()
@@ -131,17 +141,45 @@ Widget::~Widget()
 }
 
 void Widget::SetQuery(){
+    QFuture<void> result = QtConcurrent::run([this]() {
+        auto operation = [&](){
+            this->execute_action();
+        };
+        TimedResult r = time_function(operation);
+        this->update_time(r);
+    });
+}
+
+void Widget::displayRecords(std::vector<MovieRecord> &records)
+{
+    tabla->setRowCount(records.size());
+    for (int i = 0; i < records.size(); ++i) {
+        tabla->setItem(i, 0, new QTableWidgetItem(QString::number(records[i].dataId)));
+        tabla->setItem(i, 1, new QTableWidgetItem(QString::fromStdString(records[i].contentType)));
+        tabla->setItem(i, 2, new QTableWidgetItem(QString::fromStdString(records[i].title)));
+        tabla->setItem(i, 3, new QTableWidgetItem(QString::number(records[i].length)));
+        tabla->setItem(i, 4, new QTableWidgetItem(QString::number(records[i].releaseYear)));
+        tabla->setItem(i, 5, new QTableWidgetItem(QString::number(records[i].endYear)));
+        tabla->setItem(i, 6, new QTableWidgetItem(QString::number(records[i].votes)));
+        tabla->setItem(i, 7, new QTableWidgetItem(QString::number(records[i].rating)));
+        tabla->setItem(i, 8, new QTableWidgetItem(QString::number(records[i].gross)));
+        tabla->setItem(i, 9, new QTableWidgetItem(QString::fromStdString(records[i].certificate)));
+        tabla->setItem(i, 10, new QTableWidgetItem(QString::fromStdString(records[i].description)));
+    }
+}
+
+void Widget::execute_action()
+{
     parserResult queryResult;
     try {
         queryResult = parsero.query(consulta->text().toStdString());
         result->setText(consulta->text());
         result->setStyleSheet("color: black");
     }
-    catch(std::runtime_error e) {
+    catch(std::exception e) {
         result->setText("Sentencia SQL inválida.");
-        result->setStyleSheet("color: red;");
+            result->setStyleSheet("color: red;");
     }
-
     if(queryResult.queryType == "SELECT"){
         SELECT_BY_ATTRIBUTE(dataId, "dataId",int,true);
         SELECT_BY_ATTRIBUTE_CHAR(contentType, "contentType",16,false);
@@ -170,22 +208,11 @@ void Widget::SetQuery(){
     }
 }
 
-void Widget::displayRecords(std::vector<MovieRecord> &records)
+
+
+template<typename T>
+void Widget::update_time(TimedResult<T> &r)
 {
-    tabla->setRowCount(records.size());
-    for (int i = 0; i < records.size(); ++i) {
-        tabla->setItem(i, 0, new QTableWidgetItem(QString::number(records[i].dataId)));
-        tabla->setItem(i, 1, new QTableWidgetItem(QString::fromStdString(records[i].contentType)));
-        tabla->setItem(i, 2, new QTableWidgetItem(QString::fromStdString(records[i].title)));
-        tabla->setItem(i, 3, new QTableWidgetItem(QString::number(records[i].length)));
-        tabla->setItem(i, 4, new QTableWidgetItem(QString::number(records[i].releaseYear)));
-        tabla->setItem(i, 5, new QTableWidgetItem(QString::number(records[i].endYear)));
-        tabla->setItem(i, 6, new QTableWidgetItem(QString::number(records[i].votes)));
-        tabla->setItem(i, 7, new QTableWidgetItem(QString::number(records[i].rating)));
-        tabla->setItem(i, 8, new QTableWidgetItem(QString::number(records[i].gross)));
-        tabla->setItem(i, 9, new QTableWidgetItem(QString::fromStdString(records[i].certificate)));
-        tabla->setItem(i, 10, new QTableWidgetItem(QString::fromStdString(records[i].description)));
-    }
+    QString timeText = QString::number(r.duration) + " μs";
+    tiempoResult->setText(timeText);
 }
-
-

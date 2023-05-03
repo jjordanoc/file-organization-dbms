@@ -51,7 +51,7 @@ std::cout << "tellg: " << file.tellg() << " tellp: " << file.tellp() << std::end
  * Definitions of constants related to Disk Space Management
  */
 
-#define BLOCK_SIZE 1024
+#define BLOCK_SIZE 256
 
 /*
  * Each bucket should fit in RAM.
@@ -308,24 +308,13 @@ class ExtendibleHashFile {
     }
 
     /*
-     * Writes the entire directory file to secondary storage.
-     * Accesses to disk: O(1)
-     */
-    void write_directory() {
-        // Write hash_index to disk
-        SAFE_FILE_OPEN(index_file, index_file_name, flags | std::ios::trunc)
-        hash_index->write_to_disk(index_file);
-        index_file.close();
-    }
-
-    /*
      * Auxiliary method for ensuring primary key consistency.
+     * Assumes necessary files are already open.
      * Finds if a given key already exists on the index.
      * Returns true if the key is found, and false otherwise.
      * Accesses to disk: O(k)
      */
-    bool find_if_exists(KeyType key) {
-        SAFE_FILE_OPEN(hash_file, hash_file_name, flags)
+    bool _find_if_exists(KeyType key) {
         std::string hash_sequence = get_hash_sequence(key);
         auto [entry_index, bucket_ref] = hash_index->lookup(hash_sequence);
         // Read bucket at position bucket_ref
@@ -347,10 +336,91 @@ class ExtendibleHashFile {
                 break;
             }
         }
-        hash_file.close();
         return false;
     }
 
+
+    /*
+     * Insertion algorithm.
+     * Auxiliary method that avoids excessive file opening and closing when inserting.
+     * Assumes necessary files are already open.
+     * When overflow happens, a new bucket is pushed to the front of the overflow chain and linked, to allow for more efficient insertions.
+     * Throws an exception if the key of the record to be inserted is already present and the index is for a primary key.
+     * Accesses to disk: O(k + global_depth) where k is the number of buckets in an overflow chain,
+     * and global_depth is the maximum depth of the index (number of bits in the binary sequences).
+     */
+    void _insert(RecordType &record, const long &record_ref) {
+        // If the attribute is a primary key, we must check whether a record with the given key already exists
+        if (primary_key && _find_if_exists(index(record))) {
+            throw std::runtime_error("Cannot insert a duplicate primary key.");
+        }
+        std::string hash_sequence = get_hash_sequence(index(record));
+        auto [entry_index, bucket_ref] = hash_index->lookup(hash_sequence);
+        // Insert record into bucket bucket_ref of the hash file
+        SEEK_ALL(hash_file, bucket_ref)
+        // Read and update bucket bucket_ref if it's not full
+        Bucket<KeyType> bucket{};
+        hash_file.read((char *) &bucket, sizeof(bucket));
+        if (bucket.size < MAX_RECORDS_PER_BUCKET) {
+            // Append record
+            bucket.records[bucket.size++] = BucketPair<KeyType>{index(record), record_ref};
+            // Write bucket bucket_ref
+            SEEK_ALL(hash_file, bucket_ref)
+            hash_file.write((char *) &bucket, sizeof(bucket));
+        } else {
+            // Create new buckets and split hash index if possible
+            Bucket<KeyType> bucket_0{};
+            Bucket<KeyType> bucket_1{};
+            SEEK_ALL_RELATIVE(hash_file, 0, std::ios::end)
+            // Split the current hash entry and save a pointer to the end of the file (new bucket position)
+            auto [could_split, local_depth] = hash_index->split_entry(entry_index, TELL(hash_file));
+            // Split was successful, rehash the current content of the bucket into the two new buckets
+            if (could_split) {
+                for (int i = 0; i < bucket.size; ++i) {
+                    std::string ith_hash_seq = get_hash_sequence(bucket.records[i].key);
+                    if (ith_hash_seq[global_depth - 1 - local_depth] == '0') {
+                        bucket_0.records[bucket_0.size++] = bucket.records[i];
+                    } else {
+                        bucket_1.records[bucket_1.size++] = bucket.records[i];
+                    }
+                }
+                if (bucket_0.size != MAX_RECORDS_PER_BUCKET && bucket_1.size != MAX_RECORDS_PER_BUCKET) {
+                    // Insert the new record
+                    if (hash_sequence[global_depth - 1 - local_depth] == '0') {
+                        bucket_0.records[bucket_0.size++] = BucketPair<KeyType>{index(record), record_ref};
+                    } else {
+                        bucket_1.records[bucket_1.size++] = BucketPair<KeyType>{index(record), record_ref};
+                    }
+                    // Write the two new buckets to secondary storage
+                    SEEK_ALL(hash_file, bucket_ref)
+                    hash_file.write((char *) &bucket_0, sizeof(bucket_0));
+                    SEEK_ALL_RELATIVE(hash_file, 0, std::ios::end)
+                    hash_file.write((char *) &bucket_1, sizeof(bucket_1));
+                } else {
+                    // Write the two new buckets to secondary storage
+                    SEEK_ALL(hash_file, bucket_ref)
+                    hash_file.write((char *) &bucket_0, sizeof(bucket_0));
+                    SEEK_ALL_RELATIVE(hash_file, 0, std::ios::end)
+                    hash_file.write((char *) &bucket_1, sizeof(bucket_1));
+                    // Insert new record recursively (could not insert it in the current split)
+                    _insert(record, record_ref);
+                    return;
+                }
+            }
+            // Split was unsuccessful. Create a new bucket.
+            else {
+                // Create new bucket
+                SEEK_ALL_RELATIVE(hash_file, 0, std::ios::end)
+                bucket_0.records[bucket_0.size++] = BucketPair<KeyType>{index(record), record_ref};
+                // Reference the parent (push front)
+                bucket_0.next = bucket_ref;
+                long new_bucket_ref = TELL(hash_file);
+                hash_file.write((char *) &bucket_0, sizeof(bucket_0));
+                // Put reference to the new bucket in the directory
+                hash_index->update_entry_bucket(entry_index, new_bucket_ref);
+            }
+        }
+    }
 
 public:
     explicit ExtendibleHashFile(const std::string &fileName, const std::string &uniqueId, bool primaryKey, Index index, Equal equal = std::equal_to<KeyType>{}, Hash hash = std::hash<KeyType>{}) : raw_file_name(fileName), primary_key(primaryKey), unique_id(uniqueId), index(index), equal(equal), hash_function(hash) {
@@ -385,33 +455,32 @@ public:
      * Accesses to disk: O(n) where n is the total number of records in the data file.
      */
     void create_index() {
-        // Create needed files if they don't exist
         SAFE_FILE_CREATE_IF_NOT_EXISTS(hash_file, hash_file_name)
-        SAFE_FILE_CREATE_IF_NOT_EXISTS(index_file, index_file_name)
-        // Load or create index file
-        SAFE_FILE_OPEN(index_file, index_file_name, flags)
         SAFE_FILE_OPEN(hash_file, hash_file_name, flags)
         SAFE_FILE_OPEN(raw_file, raw_file_name, flags)
-        SEEK_ALL(index_file, 0)
+        SAFE_FILE_OPEN(index_file, index_file_name, flags | std::ios::trunc)
         SEEK_ALL(hash_file, 0)
         SEEK_ALL(raw_file, 0)
-        // Data file is empty, just initialize an empty index and an empty hash file with two empty buckets
+        SEEK_ALL(index_file, 0)
         Bucket<KeyType> bucket_0{};
         Bucket<KeyType> bucket_1{};
         hash_index = new ExtendibleHash<global_depth>{sizeof(bucket_0)};
         hash_file.write((char *) &bucket_0, sizeof(bucket_0));
         hash_file.write((char *) &bucket_1, sizeof(bucket_1));
-        hash_file.close();
         // Construct hash file (.ehash)
         RecordType record{};
         while (!raw_file.eof()) {
             long record_ref = TELL(raw_file);
             raw_file.read((char *) &record, sizeof(record));
             if (!raw_file.eof()) {
-                insert(record, record_ref);
+                if (!record.removed) {
+                    _insert(record, record_ref);
+                }
             }
         }
+        hash_index->write_to_disk(index_file);
         raw_file.close();
+        hash_file.close();
         index_file.close();
     }
 
@@ -473,90 +542,20 @@ public:
      * Accesses to disk: O(k + global_depth) where k is the number of buckets in an overflow chain,
      * and global_depth is the maximum depth of the index (number of bits in the binary sequences).
      */
-    void insert(RecordType &record, long record_ref) {
-        // If the attribute is a primary key, we must check whether a record with the given key already exists
-        if (primary_key && find_if_exists(index(record))) {
-            throw std::runtime_error("Cannot insert a duplicate primary key.");
-        }
+    void insert(RecordType &record, const long &record_ref) {
         SAFE_FILE_OPEN(hash_file, hash_file_name, flags)
-        std::string hash_sequence = get_hash_sequence(index(record));
-        auto [entry_index, bucket_ref] = hash_index->lookup(hash_sequence);
-        // Insert record into bucket bucket_ref of the hash file
-        SEEK_ALL(hash_file, bucket_ref)
-        // Read and update bucket bucket_ref if it's not full
-        Bucket<KeyType> bucket{};
-        hash_file.read((char *) &bucket, sizeof(bucket));
-        if (bucket.size < MAX_RECORDS_PER_BUCKET) {
-            // Append record
-            bucket.records[bucket.size++] = BucketPair<KeyType>{index(record), record_ref};
-            // Write bucket bucket_ref
-            SEEK_ALL(hash_file, bucket_ref)
-            hash_file.write((char *) &bucket, sizeof(bucket));
-        } else {
-            // Create new buckets and split hash index if possible
-            Bucket<KeyType> bucket_0{};
-            Bucket<KeyType> bucket_1{};
-            SEEK_ALL_RELATIVE(hash_file, 0, std::ios::end)
-            // Split the current hash entry and save a pointer to the end of the file (new bucket position)
-            auto [could_split, local_depth] = hash_index->split_entry(entry_index, TELL(hash_file));
-            // Split was successful, rehash the current content of the bucket into the two new buckets
-            if (could_split) {
-                write_directory();
-                for (int i = 0; i < bucket.size; ++i) {
-                    std::string ith_hash_seq = get_hash_sequence(bucket.records[i].key);
-                    if (ith_hash_seq[global_depth - 1 - local_depth] == '0') {
-                        bucket_0.records[bucket_0.size++] = bucket.records[i];
-                    } else {
-                        bucket_1.records[bucket_1.size++] = bucket.records[i];
-                    }
-                }
-                if (bucket_0.size != MAX_RECORDS_PER_BUCKET && bucket_1.size != MAX_RECORDS_PER_BUCKET) {
-                    // Insert the new record
-                    if (hash_sequence[global_depth - 1 - local_depth] == '0') {
-                        bucket_0.records[bucket_0.size++] = BucketPair<KeyType>{index(record), record_ref};
-                    } else {
-                        bucket_1.records[bucket_1.size++] = BucketPair<KeyType>{index(record), record_ref};
-                    }
-                    // Write the two new buckets to secondary storage
-                    SEEK_ALL(hash_file, bucket_ref)
-                    hash_file.write((char *) &bucket_0, sizeof(bucket_0));
-                    SEEK_ALL_RELATIVE(hash_file, 0, std::ios::end)
-                    hash_file.write((char *) &bucket_1, sizeof(bucket_1));
-                } else {
-                    // Write the two new buckets to secondary storage
-                    SEEK_ALL(hash_file, bucket_ref)
-                    hash_file.write((char *) &bucket_0, sizeof(bucket_0));
-                    SEEK_ALL_RELATIVE(hash_file, 0, std::ios::end)
-                    hash_file.write((char *) &bucket_1, sizeof(bucket_1));
-                    // Insert new record recursively (could not insert it in the current split)
-                    hash_file.close();
-                    insert(record, record_ref);
-                    return;
-                }
-            }
-            // Split was unsuccessful. Create a new bucket.
-            else {
-                // Create new bucket
-                SEEK_ALL_RELATIVE(hash_file, 0, std::ios::end)
-                bucket_0.records[bucket_0.size++] = BucketPair<KeyType>{index(record), record_ref};
-                // Reference the parent (push front)
-                bucket_0.next = bucket_ref;
-                long new_bucket_ref = TELL(hash_file);
-                hash_file.write((char *) &bucket_0, sizeof(bucket_0));
-                // Put reference to the new bucket in the directory
-                hash_index->update_entry_bucket(entry_index, new_bucket_ref);
-                write_directory();
-            }
-        }
+        SAFE_FILE_OPEN(index_file, hash_file_name, flags | std::ios::trunc)
+        _insert(record, record_ref);
+        hash_index->write_to_disk(index_file);
         hash_file.close();
+        index_file.close();
     }
 
 
     /*
-     * Removes every record that matches the given key.
+     * Removes every record that matches the given key by marking it as removed on the data file.
      * Does nothing if the key does not exist.
-     * Swaps the element to be removed with the last element in the bucket and reduces its size.
-     * Accesses to disk: O(k) where k is the length of the bucket chain accessed
+     * Accesses to disk: O(k) where k is the length of the bucket chain accessed.
      */
     void remove(KeyType key) {
         SAFE_FILE_OPEN(hash_file, hash_file_name, flags)
@@ -570,7 +569,7 @@ public:
         // Search in chain of buckets
         long current_bucket_ref = bucket_ref;
         while (true) {
-            for (int i = 0; i < bucket.size; ++i) {
+            for (int i = bucket.size - 1; i >= 0; --i) {
                 if (equal(key, bucket.records[i].key)) {
                     // Mark record as deleted in the data file.
                     long record_ref = bucket.records[i].record_ref;
@@ -580,25 +579,12 @@ public:
                     record.removed = true;
                     SEEK_ALL(raw_file, record_ref)
                     raw_file.write((char *) &record, sizeof(record));
-                    // Found record. Remove by swapping it with the last element.
-                    if (i < bucket.size - 1) {
-                        bucket.records[i] = bucket.records[bucket.size - 1];
-                    }
-                    bucket.size--;
                     // If primary key, stop searching
                     if (primary_key) {
-                        // Write current bucket to memory
-                        SEEK_ALL(hash_file, current_bucket_ref)
-                        hash_file.write((char *) &bucket, sizeof(bucket));
-                        raw_file.close();
-                        hash_file.close();
                         return;
                     }
                 }
             }
-            // Write current bucket to memory
-            SEEK_ALL(hash_file, current_bucket_ref)
-            hash_file.write((char *) &bucket, sizeof(bucket));
             // If there is a next bucket, explore it
             if (bucket.next != -1) {
                 current_bucket_ref = bucket.next;
@@ -613,7 +599,6 @@ public:
     }
 
     virtual ~ExtendibleHashFile() {
-        write_directory();
         delete hash_index;
     }
 };

@@ -11,6 +11,7 @@
 #include <QLineEdit>
 #include "parser.h"
 #include "MovieRecord.h"
+#include "utils.hpp"
 QT_BEGIN_NAMESPACE
 namespace Ui { class Widget; }
 QT_END_NAMESPACE
@@ -35,9 +36,13 @@ private:
     QTableWidget* tabla;
     QLineEdit* consulta;
     QLabel * result;
+    QLabel *tiempoResult;
     QPushButton *boton;
     parserSQL parsero;
     void displayRecords(std::vector<MovieRecord> &);
+    void execute_action();
+    template<typename T>
+    void update_time(TimedResult<T>&);
 };
 
 #endif // WIDGET_H
