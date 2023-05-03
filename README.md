@@ -1,6 +1,6 @@
 # Proyecto 1 BD2
 
-## Introduccion 
+## Introducción 
 
 
 ## Diccionario de datos
