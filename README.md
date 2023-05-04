@@ -146,9 +146,15 @@ SELECT * FROM movies WHERE releaseYear BETWEEN 1800 AND 1900;
 ## Conclusiones
 - El método **Top-Down: Recursive-Descent** para realizar el parseo es fácil de entender y sencillo de implementar. Sin embargo, por su simplicidad genera
   una limitación en la generación de sentencias. En este caso se acude a buscar otros métodos de parseo para poder realizar un análisis léxico y sintáctico más genérico.
-- 2
-- 3
-- 4
+  
+- Se utilizaron índices para optimizar consultas sobre un dataset por encima de los 100000 registros, mostrando su superioridad para gestionar búsquedas sobre muchos registros.
+
+- Se comparó el indice Hash respecto al AVL para búsquedas por igualdad y se obtuvo que, en casos promedio, el Hash realizaba sus operaciones de búsqueda en un tiempo mucho menor que el AVL; sin embargo, se encontraron casos específicos donde el AVL podia llegar a concretar sus operaciones en un tiempo similar al Hash.
+
+- El tiempo de creación del indice AVL resultó ser muy superior al de creación del índice Hash. Esto es potencialmente debido a la cantidad de rotaciones necesarias durante la inserción de todos los nodos del AVL.
+
+- El AVL resultó de utilidad para realizar busquedas por rango y reportes ordendados, operación la cual **no** es soportada por el Hash; estas consultas resultaron ser ejemplos claros en las que puede preferirse una estructura que prevalezca cierto orden entre las llaves respecto a un Hash, en el cual se pierde el orden de los atributos por lo que se indexa.
+
 
 ## Autores
 
