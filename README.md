@@ -149,7 +149,7 @@ SELECT * FROM movies WHERE releaseYear BETWEEN 1800 AND 1900;
   
 - Se utilizaron índices para optimizar consultas sobre un dataset por encima de los 100000 registros, mostrando su superioridad para gestionar búsquedas sobre muchos registros.
 
-- Se comparó el indice Hash respecto al AVL para búsquedas por igualdad y se obtuvo que, en casos promedio, el Hash realizaba sus operaciones de búsqueda en un tiempo mucho menor que el AVL; sin embargo, se encontraron casos específicos donde el AVL podia llegar a concretar sus operaciones en un tiempo similar al Hash.
+- Se comparó el indice Hash respecto al AVL para búsquedas por igualdad y se obtuvo que, en casos promedio, el Hash realizaba sus operaciones de búsqueda en un tiempo mucho menor que el AVL; sin embargo, se encontraron casos específicos donde el AVL podia llegar a concretar sus operaciones en un tiempo similar al Hash (casos donde la llave a buscar esta cerca a la raíz).
 
 - El tiempo de creación del indice AVL resultó ser muy superior al de creación del índice Hash. Esto es potencialmente debido a la cantidad de rotaciones necesarias durante la inserción de todos los nodos del AVL.
 
