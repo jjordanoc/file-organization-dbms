@@ -38,6 +38,7 @@ private slots:
 private:
     QFutureWatcher<TimedResult<void>> futureWatcher{};
     std::vector<MovieRecord> queryRecords{};
+    parserResult queryResult;
     Ui::Widget *ui;
     QVBoxLayout* global;
     QHBoxLayout* H1;

@@ -49,31 +49,31 @@ private:
     Index index;        //< Receives a `RecordType` and returns its `KeyType` associated
     Greater greater;    //< Receives two `RecordTypes` and returns `true` if a.key > b.key and `false` otherwise
 
-    long locate(KeyType key) {
+    int64_t locate(KeyType key) {
         /************************************** third (top) index level  **********************************************/
         IndexPage<KeyType> index1;
         index_file1.seekg(std::ios::beg);
         index_file1.read((char *) &index1, SIZE(IndexPage<KeyType>));//< loads the unique index1 page in RAM
-        long descend_to_index_2 = index1.locate(key, greater);
+        int64_t descend_to_index_2 = index1.locate(key, greater);
         //^ searches the physical pointer to descend to the second level
 
         /************************************** second index level ****************************************************/
         IndexPage<KeyType> index2;
         index_file2.seekg(descend_to_index_2);
         index_file2.read((char *) &index2, SIZE(IndexPage<KeyType>));//< loads an index2 page in RAM
-        long descend_to_index_3 = index2.locate(key, greater);
+        int64_t descend_to_index_3 = index2.locate(key, greater);
         //^ searches the pointer to descend to the last index level
 
         /************************************** first (base) index level **********************************************/
         IndexPage<KeyType> index3;
         index_file3.seekg(descend_to_index_3);
         index_file3.read((char *) &index3, SIZE(IndexPage<KeyType>));//< loads an index3 page in RAM
-        long page_position = index3.locate(key, greater);
+        int64_t page_position = index3.locate(key, greater);
         //^ searches the physical pointer to descend to a leaf page
         return page_position;
     }
 
-    void init_data_pages(std::vector<std::pair<RecordType, long>> &sorted_records, int n_pages) {
+    void init_data_pages(std::vector<std::pair<RecordType, int64_t>> &sorted_records, int n_pages) {
         int l3 = 0, l2 = 0, l1 = 0;
         int k3 = 0, k2 = 0, k1 = 0;
 
@@ -84,7 +84,7 @@ private:
         for (int i = 0; i < n_pages; ++i) {
             DataPage<Pair<KeyType>> data_page;
             for (int j = 0; j < N<Pair<KeyType>>; ++j) {
-                std::pair<RecordType, long> pair = sorted_records[(i * N<Pair<KeyType>>) + j];
+                std::pair<RecordType, int64_t> pair = sorted_records[(i * N<Pair<KeyType>>) + j];
                 data_page.records[j] = Pair<KeyType>(index(pair.first), pair.second);
             }
             data_page.n_records = N<Pair<KeyType>>;
@@ -139,7 +139,7 @@ private:
         index_file1.write((char *) &level1_index_page, SIZE(IndexPage<KeyType>));
     }
 
-    void locate_insertion_pk(long seek, KeyType key, long &non_full, long &prev) {
+    void locate_insertion_pk(int64_t seek, KeyType key, int64_t &non_full, int64_t &prev) {
         DataPage<Pair<KeyType>> page;
 
         do {
@@ -159,7 +159,7 @@ private:
         } while (seek != DISK_NULL);
     }
 
-    void locate_insertion_non_pk(long seek, long &non_full, long &prev) {
+    void locate_insertion_non_pk(int64_t seek, int64_t &non_full, int64_t &prev) {
         DataPage<Pair<KeyType>> page;
 
         do {
@@ -176,9 +176,9 @@ private:
         } while (seek != DISK_NULL);
     }
 
-    void search(KeyType key, std::vector<long> &pointers) {
+    void search(KeyType key, std::vector<int64_t> &pointers) {
         // locates the physical position of the database page where the record to be searched is
-        long seek = this->locate(key);
+        int64_t seek = this->locate(key);
         DataPage<Pair<KeyType>> page;
         do {
             data_file.seekg(seek);
@@ -196,10 +196,10 @@ private:
         } while (seek != DISK_NULL);
     }
 
-    void range_search(KeyType lower_bound, KeyType upper_bound, std::vector<long> &pointers) {
+    void range_search(KeyType lower_bound, KeyType upper_bound, std::vector<int64_t> &pointers) {
         // locates the physical position of the database page where the `lower_bound` is located
-        long seek = this->locate(lower_bound);
-        long n_static_pages = INT_POW(M<KeyType> + 1, 3);
+        int64_t seek = this->locate(lower_bound);
+        int64_t n_static_pages = INT_POW(M<KeyType> + 1, 3);
 
         DataPage<Pair<KeyType>> page;
         bool any_found;
@@ -217,7 +217,7 @@ private:
             }
 
             DataPage<Pair<KeyType>> overflow;
-            long seek_overflow = page.next;
+            int64_t seek_overflow = page.next;
             while (seek_overflow != DISK_NULL) {
                 data_file.seekg(seek_overflow);
                 data_file.read((char *) &overflow, SIZE(DataPage<Pair<KeyType>>));
@@ -236,10 +236,10 @@ private:
         } while (any_found && (seek != n_static_pages * SIZE(DataPage<Pair<KeyType>>)));
     }
 
-    void search_records(std::vector<long> &pointers, std::vector<RecordType> &records) {
+    void search_records(std::vector<int64_t> &pointers, std::vector<RecordType> &records) {
         records.reserve(pointers.size());
         std::fstream heap_file(heap_file_name, flags);
-        for (long pointer: pointers) {
+        for (int64_t pointer: pointers) {
             RecordType record;
             heap_file.seekg(pointer);
             heap_file.read((char *) &record, SIZE(RecordType));
@@ -250,9 +250,9 @@ private:
         heap_file.close();
     }
 
-    void remove_records(std::vector<long> &pointers) {
+    void remove_records(std::vector<int64_t> &pointers) {
         std::fstream heap_file(heap_file_name, flags);
-        for (long pointer: pointers) {
+        for (int64_t pointer: pointers) {
             RecordType record;
             heap_file.seekg(pointer);
             heap_file.read((char *) &record, SIZE(RecordType));
@@ -291,7 +291,7 @@ public:
         }
 
         SEEK_ALL_RELATIVE(heap_file, 0, std::ios::end)
-        long n_bytes = heap_file.tellg();
+        int64_t n_bytes = heap_file.tellg();
         SEEK_ALL(heap_file, 0);
 
         int n_total_records = n_bytes / SIZE(RecordType); // Total number of records in the heap file
@@ -299,15 +299,16 @@ public:
         int max_n_children = M<KeyType> + 1;        //< Maximum number of children per index page
         int n_pages = INT_POW(max_n_children, 3);   //< Total number of record pages in full ISAM-tree
         int n_records = N<Pair<KeyType>> * n_pages; //< Total number of records in full ISAM-tree
+        std::cout << "n_pages: " << n_pages << std::endl;
 
         if (n_total_records < n_records) {
             throw std::runtime_error("The #N of records in " + heap_file_name + " are less than the minimum required.");
         }
 
-        std::vector<std::pair<RecordType, long>> sorted_data;
+        std::vector<std::pair<RecordType, int64_t>> sorted_data;
         sorted_data.reserve(n_records);
 
-        long seek = 0;
+        int64_t seek = 0;
 
         for (int i = 0; i < n_records; ++i) {
             RecordType record;
@@ -317,7 +318,7 @@ public:
         }
 
         std::sort(sorted_data.begin(), sorted_data.end(),
-                  [&](std::pair<RecordType, long> &a, std::pair<RecordType, long> &b) {
+                  [&](std::pair<RecordType, int64_t> &a, std::pair<RecordType, int64_t> &b) {
                       return !greater(index(a.first), index(b.first));
                   });
 
@@ -334,13 +335,15 @@ public:
          * database:  [*][*]     ...   [*][*][*][*]   ...   [*][*]     [*][*]   ...   [*][*]      [*][*]    ...  [*][*]
          */
         CLOSE_FILES;
-
+        std::cout << "Finished inserting data pages" << std::endl;
         // Inserts the remaining records
         RecordType record;
         while (heap_file.read((char *) &record, SIZE(RecordType))) {
+            std::cout << "Seek: " << seek << " Index: " << index(record) << std::endl;
             insert(index(record), seek);
             seek = heap_file.tellg();
         }
+        std::cout << "Finished inserting overflow pages" << std::endl;
 
         /* index1:                      [k_1          k_2           ...         k_{M-1}             k_M]
          *                             /               |            ...            |                    \
@@ -364,13 +367,13 @@ public:
     explicit operator bool() {
         OPEN_FILES(std::ios::in);
         SEEK_ALL_RELATIVE(index_file1, 0, std::ios::end)
-        long size = index_file1.tellg();
+        int64_t size = index_file1.tellg();
         CLOSE_FILES;
         return (size > 0);
     }
 
     std::vector<RecordType> search(KeyType key) {
-        std::vector<long> pointers;
+        std::vector<int64_t> pointers;
 
         OPEN_FILES(flags);
         this->search(key, pointers);
@@ -382,7 +385,7 @@ public:
     }
 
     std::vector<RecordType> range_search(KeyType lower_bound, KeyType upper_bound) {
-        std::vector<long> pointers;
+        std::vector<int64_t> pointers;
 
         OPEN_FILES(flags);
         this->range_search(lower_bound, upper_bound, pointers);
@@ -394,7 +397,7 @@ public:
     }
 
     void remove(KeyType key) {
-        std::vector<long> pointers;
+        std::vector<int64_t> pointers;
 
         OPEN_FILES(flags);
         this->search(key, pointers);
@@ -411,14 +414,14 @@ public:
     /*   • The three indexing levels are totally static, so the tree do not admit the split of indexing pages.        */
     /*   • If the selected insertion page is full, a database page split occurs.                                          */
     /******************************************************************************************************************/
-    void insert(KeyType key, long pointer) {
+    void insert(KeyType key, int64_t pointer) {
         OPEN_FILES(flags);//< open the files
-
+        std::cout << "Key: " << key << std::endl;
         // locates the physical position of the database page where the new record should be inserted
-        long seek = this->locate(key);
+        int64_t seek = this->locate(key);
 
-        long non_full = DISK_NULL;
-        long prev = DISK_NULL;
+        int64_t non_full = DISK_NULL;
+        int64_t prev = DISK_NULL;
 
         PrimaryKey ? locate_insertion_pk(seek, key, non_full, prev) : locate_insertion_non_pk(seek, non_full, prev);
         //^ At the end of this call, `non_full` contains the physical position of the first DataPage
@@ -437,7 +440,7 @@ public:
             data_file.open(data_file_name, std::ios::app);
             DataPage<Pair<KeyType>> new_page;
             new_page.records[new_page.n_records++] = Pair<KeyType>(key, pointer);
-            long pos = data_file.tellp();
+            int64_t pos = data_file.tellp();
             data_file.write((char *) &new_page, SIZE(DataPage<Pair<KeyType>>));
             data_file.close();
 

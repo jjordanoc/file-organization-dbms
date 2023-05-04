@@ -29,44 +29,51 @@
 * BUFFER - long - int = M * (key + long)
 * M = (BUFFER - long - int) / (key + long) */
 template<typename KeyType>
-inline static constexpr int M = (BUFFER_SIZE - SIZE(int) - SIZE(long long))
-                                / (SIZE(long long) + SIZE(KeyType));
+inline static constexpr int M = (BUFFER_SIZE - SIZE(int) - SIZE(int64_t))
+                                / (SIZE(int64_t) + SIZE(KeyType));
 
 template<typename KeyType>
-struct IndexPage {
-    int n_keys{0};                  //< number of keys in the index page
-    KeyType keys[M<KeyType>]{};     //< keys array
-    long long children[M<KeyType> + 1]{}; //< children physical position array
+struct IndexPage
+{
+    int n_keys{0};                      //< number of keys in the index page
+    KeyType keys[M<KeyType>]{};         //< keys array
+    int64_t children[M<KeyType> + 1]{}; //< children physical position array
 
-    long locate(KeyType key, std::function<bool(KeyType, KeyType)> greater)
+    int64_t locate(KeyType key, std::function<bool(KeyType, KeyType)> greater)
     {
         int i = 0;
-        for (; ((i < n_keys) && !greater(keys[i], key)); ++i);
+        for (; ((i < n_keys) && !greater(keys[i], key)); ++i)
+            ;
         return children[i];
     }
 };
 
-
 //`N` stores the maximum number of records per database page
 // It is calculated with the same logic as with `M`.
 template<typename RecordType>
-inline static constexpr int N = (BUFFER_SIZE - SIZE(long long) - SIZE(int)) / SIZE(RecordType);
+inline static constexpr int N = (BUFFER_SIZE - SIZE(int64_t) - SIZE(int)) / SIZE(RecordType);
 
 template<typename RecordType>
-struct DataPage {
+struct DataPage
+{
     RecordType records[N<RecordType>];
-    long long next{-1};
+    int64_t next{-1};
     int n_records{0};
 };
 
 template<typename KeyType>
-struct Pair {
-    KeyType key {KeyType()};
-    long long data_pointer;
+struct Pair
+{
+    KeyType key{KeyType()};
+    int64_t data_pointer;
 
-    Pair() : data_pointer(DISK_NULL) {}
+    Pair()
+        : data_pointer(DISK_NULL)
+    {}
 
-    Pair(KeyType _key, long pointer) : data_pointer(pointer) {
+    Pair(KeyType _key, int64_t pointer)
+        : data_pointer(pointer)
+    {
         func::copy(key, _key);
     }
 };

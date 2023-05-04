@@ -36,6 +36,7 @@ struct parserResult{
         selectedAttribute = "";
         indexName = "";
         indexValue = "";
+        queryType = "";
         range1 = "";
         range2 = "";
         selectedAttributes.clear();

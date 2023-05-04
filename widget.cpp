@@ -215,13 +215,58 @@ const std::string FILENAME = "database/movies_and_series.dat";
         } \
     }
 
+#define DELETE_BY_ATTRIBUTE_CHAR(attribute1, attribute2, attributeCharSize, isPrimaryKey) \
+    if (queryResult.selectedAttribute == attribute2) { \
+        std::function<bool(char[attributeCharSize], char[attributeCharSize])> equal = \
+            [](char a[attributeCharSize], char b[attributeCharSize]) -> bool { \
+            return std::string(a) == std::string(b); \
+        }; \
+        std::function<char *(MovieRecord &)> index = [=](MovieRecord &record) { \
+            return record.attribute1; \
+        }; \
+        std::hash<std::string> hasher; \
+        std::function<std::size_t(char[attributeCharSize])> hash = \
+            [&hasher](char key[attributeCharSize]) { return hasher(std::string(key)); }; \
+        ExtendibleHashFile<char[attributeCharSize], \
+                           MovieRecord, \
+                           16, \
+                           std::function<char *(MovieRecord &)>, \
+                           std::function<bool(char[attributeCharSize], char[attributeCharSize])>, \
+                           std::function<std::size_t(char[attributeCharSize])>> \
+            extendible_hash_index{FILENAME, attribute2, isPrimaryKey, index, equal, hash}; \
+        std::function<bool(char[attributeCharSize], char[attributeCharSize])> greater = \
+            [](char a[attributeCharSize], char b[attributeCharSize]) -> bool { \
+            return std::string(a) > std::string(b); \
+        }; \
+        AVLFile<char[attributeCharSize], MovieRecord, decltype(index), decltype(greater)> \
+            avl(FILENAME, attribute2, false, index, greater); \
+        std::string attributeResult = queryResult.atributos[queryResult.selectedAttribute]; \
+        std::cout << "Result from parser: " << attributeResult << std::endl; \
+        char buf[attributeCharSize]; \
+        int i = 0; \
+        for (; i <= attributeResult.length() - 3; i++) { \
+            buf[i] = attributeResult[i + 1]; \
+        } \
+        buf[i] = '\0'; \
+        std::cout << "After removing things: " << buf << std::endl; \
+        if (extendible_hash_index) { \
+            std::cout << "Using Hash" << std::endl; \
+            extendible_hash_index.remove(buf); \
+        } else if (avl) { \
+            std::cout << "Using AVL" << std::endl; \
+            avl.remove(buf); \
+        } else { \
+            std::cout << "Falta linear search." << std::endl; \
+        } \
+    }
+
 #define INSERT_VALUE_BY_ATTRIBUTE(attribute1, \
                                   attribute2, \
                                   attributeType, \
                                   isPrimaryKey, \
                                   recordInserted, \
                                   pos) \
-    if (queryResult.selectedAttribute == attribute2) { \
+    if (true) { \
         std::function<attributeType(MovieRecord &)> index = [=](MovieRecord &record) { \
             return record.attribute1; \
         }; \
@@ -231,9 +276,11 @@ const std::string FILENAME = "database/movies_and_series.dat";
                                                                              index}; \
         AVLFile<attributeType, MovieRecord> avl(FILENAME, attribute2, isPrimaryKey, index); \
         if (extendible_hash_index) { \
+            std::cout << "Inserting value in index " << attribute2 << " hash"; \
             extendible_hash_index.insert(recordInserted, pos); \
         } \
         if (avl) { \
+            std::cout << "Inserting value in index " << attribute2 << " avl"; \
             avl.insert(index(recordInserted), pos); \
         } \
     }
@@ -244,7 +291,7 @@ const std::string FILENAME = "database/movies_and_series.dat";
                                        isPrimaryKey, \
                                        recordInserted, \
                                        pos) \
-    if (queryResult.selectedAttribute == attribute2) { \
+    if (true) { \
         std::function<char *(MovieRecord &)> index = [=](MovieRecord &record) { \
             return record.attribute1; \
         }; \
@@ -269,9 +316,11 @@ const std::string FILENAME = "database/movies_and_series.dat";
         AVLFile<char[attributeCharSize], MovieRecord, decltype(index), decltype(greater)> \
             avl(FILENAME, attribute2, false, index, greater); \
         if (extendible_hash_index) { \
+            std::cout << "Inserting value in index " << attribute2 << " hash"; \
             extendible_hash_index.insert(recordInserted, pos); \
         } \
         if (avl) { \
+            std::cout << "Inserting value in index " << attribute2 << " avl"; \
             avl.insert(index(recordInserted), pos); \
         } \
     }
@@ -291,6 +340,17 @@ Widget::Widget(QWidget *parent)
     boton = new QPushButton("Enviar");
     tabla->setColumnCount(11);
     tabla->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    tabla->setHorizontalHeaderLabels(QStringList{tr("dataId"),
+                                                 tr("contentType"),
+                                                 tr("title"),
+                                                 tr("length"),
+                                                 tr("releaseYear"),
+                                                 tr("endYear"),
+                                                 tr("votes"),
+                                                 tr("rating"),
+                                                 tr("gross"),
+                                                 tr("certificate"),
+                                                 tr("description")});
     consulta->setGeometry(0, 0, 200, 200);
     consulta->setPlaceholderText("Ingrese consulta: ");
     H1->addWidget(consulta);
@@ -305,6 +365,11 @@ Widget::Widget(QWidget *parent)
     connect(boton, SIGNAL(clicked()), this, SLOT(SetQuery()));
     connect(&this->futureWatcher, &QFutureWatcher<void>::finished, this, &Widget::onQueryFinished);
     connect(&this->futureWatcher, &QFutureWatcher<void>::started, this, &Widget::onQueryStarted);
+    std::function<int(MovieRecord &)> index = [=](MovieRecord &record) { return record.dataId; };
+    ExtendibleHashFile<int, MovieRecord> extendible_hash_data_id{FILENAME, "dataId", true, index};
+    if (!extendible_hash_data_id) {
+        extendible_hash_data_id.create_index();
+    }
 }
 
 Widget::~Widget()
@@ -313,6 +378,17 @@ Widget::~Widget()
 
 void Widget::SetQuery()
 {
+    try {
+        queryResult = parsero.query(consulta->text().toStdString());
+        std::cout << consulta->text().toStdString() << std::endl;
+        std::cout << queryResult.selectedAttribute << std::endl;
+        result->setText(consulta->text());
+        result->setStyleSheet("color: black;");
+
+    } catch (std::runtime_error e) {
+        result->setText("Sentencia SQL inválida.");
+        result->setStyleSheet("color: red;");
+    }
     QFuture<TimedResult<void>> result = QtConcurrent::run([this]() -> TimedResult<void> {
         auto operation = [&]() { this->execute_action(); };
         TimedResult r = time_function(operation);
@@ -328,6 +404,7 @@ void Widget::onQueryFinished()
     this->displayRecords(queryRecords);
     this->tiempoResult->setStyleSheet("color: black;");
     this->boton->setEnabled(true);
+    queryResult.killSelf();
 }
 
 void Widget::onQueryStarted()
@@ -357,16 +434,6 @@ void Widget::displayRecords(std::vector<MovieRecord> &records)
 
 void Widget::execute_action()
 {
-    parserResult queryResult;
-    try {
-        queryResult = parsero.query(consulta->text().toStdString());
-        result->setText(consulta->text());
-        result->setStyleSheet("color: black;");
-    } catch (std::runtime_error e) {
-        result->setText("Sentencia SQL inválida.");
-        result->setStyleSheet("color: red;");
-    }
-
     if(queryResult.queryType == "SELECT"){
         if (queryResult.range1 == "") {
             SELECT_BY_ATTRIBUTE(dataId, "dataId", int, true);
@@ -404,12 +471,17 @@ void Widget::execute_action()
         CREATE_INDEX_BY_ATTRIBUTE_CHAR(description,"description", 512,false);
     } else if (queryResult.queryType == "DELETE") {
         DELETE_BY_ATTRIBUTE(dataId, "dataId", int, true);
+        DELETE_BY_ATTRIBUTE_CHAR(contentType, "contentType", 16, false);
+        DELETE_BY_ATTRIBUTE_CHAR(title, "title", 256, false);
         DELETE_BY_ATTRIBUTE(length, "length", short, false);
         DELETE_BY_ATTRIBUTE(releaseYear, "releaseYear", short, false);
         DELETE_BY_ATTRIBUTE(endYear, "endYear", short, false);
         DELETE_BY_ATTRIBUTE(votes, "votes", int, false);
         DELETE_BY_ATTRIBUTE(rating, "rating", float, false);
         DELETE_BY_ATTRIBUTE(gross, "gross", int, false);
+        DELETE_BY_ATTRIBUTE_CHAR(certificate, "certificate", 16, false);
+        DELETE_BY_ATTRIBUTE_CHAR(description, "description", 512, false);
+
     } else if (queryResult.queryType == "INSERT") {
         MovieRecord record;
         record.dataId = stoi(queryResult.atributos["dataId"]);
@@ -444,6 +516,7 @@ void Widget::execute_action()
         record.votes = stoi(queryResult.atributos["votes"]);
         record.rating = stof(queryResult.atributos["rating"]);
         record.gross = stoi(queryResult.atributos["gross"]);
+        record.removed = false;
 
         tmp = queryResult.atributos["certificate"];
         char str3[16];
@@ -468,7 +541,20 @@ void Widget::execute_action()
         for (int i = 0; i <= 511; i++) {
             record.description[i] = str4[i];
         }
-
+        std::function<int(MovieRecord &)> index = [=](MovieRecord &record) { return record.dataId; };
+        ExtendibleHashFile<int, MovieRecord> extendible_hash_data_id{FILENAME,
+                                                                     "dataId",
+                                                                     true,
+                                                                     index};
+        if (extendible_hash_data_id) {
+            auto res = extendible_hash_data_id.search(index(record));
+            if (!res.empty()) {
+                std::cout << "Duplicate primary key." << std::endl;
+                return;
+            }
+        } else {
+            std::cout << "Error" << std::endl;
+        }
         long position = insert_register_on_file<MovieRecord>(FILENAME, record);
         INSERT_VALUE_BY_ATTRIBUTE(dataId, "dataId", int, true, record, position);
         INSERT_VALUE_BY_ATTRIBUTE_CHAR(contentType, "contentType", 16, false, record, position);
