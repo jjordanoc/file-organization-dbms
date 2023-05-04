@@ -16,8 +16,9 @@ Para este proyecto, se nos ha pedido crear y manipular un DataSet usando estrate
 
 Las estrategias usadas para este proyecto son las siguientes:
 
-- ISAM-Sparse Index
-- Extendible Hashing
+- [ISAM-Sparse Index](https://github.com/ByJuanDiego/ISAM-tree)
+- [Extendible Hashing](https://github.com/jjordanoc/extendible-hash)
+- [AVL](https://github.com/ByJuanDiego/avl-file)
 
 ### Funciones implementadas
 
