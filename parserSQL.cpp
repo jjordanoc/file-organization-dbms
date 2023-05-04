@@ -21,41 +21,6 @@ struct parserator{
     unordered_map<string, string> atributos;
     string queryType;
 
-//    void select_inst(){
-//        cout << "Table: " << table << endl;
-//        if(selectedAttributes.empty()) cout << "\nShown attributes: all\n";
-//        else{
-//            cout << "\nShown attributes:\n";
-//            for(const auto& atributo: selectedAttributes)
-//                cout << atributo << "\t";
-//            cout << "\n\nSearch by column: " << selectedAttribute << endl;
-
-//            cout << "\nWhere match: " << atributos[selectedAttribute] << endl;
-//        }
-//    }
-
-//    void insert_inst(){
-//        cout << "Table: " << table << endl;
-//        cout << "\nInsert a record which values are:\n";
-//        for(const auto& atributo: attributes){
-//            cout << atributos[atributo] << "\t";
-//        }
-//    }
-
-//    void delete_inst(){
-//        cout << "Table: " << table << endl;
-
-//        cout << "\nDelete registers by column: " << selectedAttribute << endl;
-
-//        cout << "\nWhere match: " << atributos[selectedAttribute] << endl;
-//    }
-
-//    void create_index(){
-//        cout << "Indexed column: " << selectedAttribute << endl;
-//        cout << "\nIndex name: " << indexName << endl;
-//        cout << "\nIndex type: " << indexValue << endl;
-//    }
-
     parserator() {
         for(const auto& atributo: attributes){
             atributos[atributo] = "";

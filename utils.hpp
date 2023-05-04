@@ -2,9 +2,12 @@
 #define UTILS_HPP
 
 #include <chrono>
+#include <fstream>
+#include <vector>
 
 template<typename Return>
-struct TimedResult {
+struct TimedResult
+{
     Return result;
     double duration;
     TimedResult(Return &_result, double &_duration) : result(_result), duration(_duration) {}
@@ -32,6 +35,22 @@ TimedResult<void> time_function(Fun &function, Args... args) {
     auto end = std::chrono::steady_clock::now();
     double duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     return {duration};
+}
+
+template<typename KeyType, typename RecordType, typename Index>
+std::vector<RecordType> linear_search(std::string filename, KeyType &key, Index &index)
+{
+    std::vector<RecordType> result;
+    std::fstream file(filename, std::ios::in | std::ios::binary);
+    while (!file.eof()) {
+        RecordType tmp{};
+        file.read((char *) &tmp, sizeof(tmp));
+        if (!file.eof() && index(tmp) == key) {
+            result.push_back(tmp);
+        }
+    }
+    file.close();
+    return result;
 }
 
 #endif

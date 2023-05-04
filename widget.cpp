@@ -8,60 +8,75 @@
 #include "utils.hpp"
 #include <QtConcurrent>
 
-#define FILENAME "database/movies_and_series.dat"
+const std::string FILENAME = "database/movies_and_series.dat";
 
 #define SELECT_BY_ATTRIBUTE(attribute1, attribute2, attributeType, isPrimaryKey) \
-if(queryResult.selectedAttribute == attribute2){ \
-    std::function<attributeType(MovieRecord &)> index = [=](MovieRecord &record) { return record.attribute1; }; \
-    ExtendibleHashFile<attributeType, MovieRecord> extendible_hash_index{FILENAME, attribute2, isPrimaryKey, index}; \
-    AVLFile<attributeType, MovieRecord> avl(FILENAME, "avl_indexed_by_dataId.dat", isPrimaryKey, index); \
-    if(extendible_hash_index){ \
-        auto res = extendible_hash_index.search(stoi(queryResult.atributos[queryResult.selectedAttribute])); \
-        this->displayRecords(res); \
-        for (auto &record: res) { \
-            std::cout << record.to_string() << std::endl; \
+    if (queryResult.selectedAttribute == attribute2) { \
+        std::function<attributeType(MovieRecord &)> index = [=](MovieRecord &record) { \
+            return record.attribute1; \
+        }; \
+        ExtendibleHashFile<attributeType, MovieRecord> extendible_hash_index{FILENAME, \
+                                                                             attribute2, \
+                                                                             isPrimaryKey, \
+                                                                             index}; \
+        AVLFile<attributeType, MovieRecord> avl(FILENAME, \
+                                                "avl_indexed_by_dataId.dat", \
+                                                isPrimaryKey, \
+                                                index); \
+        auto attributeResult = static_cast<attributeType>( \
+            std::stof(queryResult.atributos[queryResult.selectedAttribute])); \
+        if (extendible_hash_index) { \
+            std::cout << "Using Hash" << std::endl; \
+            auto res = extendible_hash_index.search(attributeResult); \
+            this->displayRecords(res); \
+        } else if (avl) { \
+            std::cout << "Using AVL" << std::endl; \
+            auto res = avl.search(attributeResult); \
+            this->displayRecords(res); \
+        } else { \
+            std::cout << "Using linear search." << std::endl; \
+            auto res = linear_search<attributeType, MovieRecord, decltype(index)>(FILENAME, \
+                                                                                  attributeResult, \
+                                                                                  index); \
+            this->displayRecords(res); \
         } \
-    } \
-    else if(avl) { \
-        std::cout << "Usho AVL" << std::endl;\
-        auto res = avl.search(stoi(queryResult.atributos[queryResult.selectedAttribute])); \
-        this->displayRecords(res); \
-        for (auto &record: res) { \
-            std::cout << record.to_string() << std::endl; \
-        } \
-    }\
-    else{ \
-        std::cout << "Busqueda lineal suas" << std::endl; \
-    } \
-}
+    }
 
 #define SELECT_BY_ATTRIBUTE_CHAR(attribute1, attribute2, attributeCharSize, isPrimaryKey) \
-if(queryResult.selectedAttribute == attribute2){ \
-    std::function<bool(char[attributeCharSize], char[attributeCharSize])> equal = [](char a[attributeCharSize], char b[attributeCharSize]) -> bool { return std::string(a) == std::string(b); }; \
-    std::function<char *(MovieRecord &)> index = [=](MovieRecord &record) { return record.attribute1; }; \
-    std::hash<std::string> hasher; \
-    std::function<std::size_t(char[attributeCharSize])> hash = [&hasher](char key[attributeCharSize]) { return hasher(std::string(key)); }; \
-    ExtendibleHashFile<char[attributeCharSize], MovieRecord, attributeCharSize, std::function<char *(MovieRecord &)>, std::function<bool(char[attributeCharSize], char[attributeCharSize])>, std::function<std::size_t(char[attributeCharSize])>> extendible_hash_index{FILENAME, attribute2, isPrimaryKey, index, equal, hash}; \
-    if(extendible_hash_index){ \
-        std::string tmp = queryResult.atributos[queryResult.selectedAttribute]; \
-        std::cout << "Result from parser: "<< tmp << std::endl; \
-        char str[attributeCharSize+2]; \
-        int i = 0; \
-        for(; i < tmp.length() - 2; i++){ \
-            str[i] = tmp[i+1]; \
-        } \
-        str[i+1] = '\0'; \
-        std::cout << "After removing things: "<< str << std::endl; \
-        auto res = extendible_hash_index.search(str); \
-        this->displayRecords(res); \
-        for (auto &record: res) { \
-            std::cout << record.to_string() << std::endl; \
-        } \
-    } \
-    else{ \
+    if (queryResult.selectedAttribute == attribute2) { \
+        std::function<bool(char[attributeCharSize], char[attributeCharSize])> equal = \
+            [](char a[attributeCharSize], char b[attributeCharSize]) -> bool { \
+            return std::string(a) == std::string(b); \
+        }; \
+        std::function<char *(MovieRecord &)> index = [=](MovieRecord &record) { \
+            return record.attribute1; \
+        }; \
+        std::hash<std::string> hasher; \
+        std::function<std::size_t(char[attributeCharSize])> hash = \
+            [&hasher](char key[attributeCharSize]) { return hasher(std::string(key)); }; \
+        ExtendibleHashFile<char[attributeCharSize], \
+                           MovieRecord, \
+                           attributeCharSize, \
+                           std::function<char *(MovieRecord &)>, \
+                           std::function<bool(char[attributeCharSize], char[attributeCharSize])>, \
+                           std::function<std::size_t(char[attributeCharSize])>> \
+            extendible_hash_index{FILENAME, attribute2, isPrimaryKey, index, equal, hash}; \
+        if (extendible_hash_index) { \
+            std::string tmp = queryResult.atributos[queryResult.selectedAttribute]; \
+            std::cout << "Result from parser: " << tmp << std::endl; \
+            char str[attributeCharSize + 2]; \
+            int i = 0; \
+            for (; i <= tmp.length() - 3; i++) { \
+                str[i] = tmp[i + 1]; \
+            } \
+            str[i] = '\0'; \
+            std::cout << "After removing things: " << str << std::endl; \
+            auto res = extendible_hash_index.search(str); \
+            this->displayRecords(res); \
+        } else { \
             std::cout << "Busqueda lineal suas" << std::endl; \
-    } \
-}
+        } \
+    }
 
 #define CREATE_INDEX_BY_ATTRIBUTE(attribute1, attribute2, attributeType, isPrimaryKey) \
 if(queryResult.selectedAttribute == attribute2){ \
@@ -90,17 +105,28 @@ if(queryResult.selectedAttribute == attribute2){ \
 }
 
 #define CREATE_INDEX_BY_ATTRIBUTE_CHAR(attribute1, attribute2, attributeCharSize, isPrimaryKey) \
-if(queryResult.selectedAttribute == attribute2){ \
-    if(queryResult.indexValue == "Hash"){ \
-        std::function<bool(char[attributeCharSize], char[attributeCharSize])> equal = [](char a[attributeCharSize], char b[attributeCharSize]) -> bool { return std::string(a) == std::string(b); }; \
-        std::function<char *(MovieRecord &)> index = [=](MovieRecord &record) { return record.attribute1; }; \
-        std::hash<std::string> hasher; \
-        std::function<std::size_t(char[attributeCharSize])> hash = [&hasher](char key[attributeCharSize]) { return hasher(std::string(key)); }; \
-        ExtendibleHashFile<char[attributeCharSize], MovieRecord, attributeCharSize, std::function<char *(MovieRecord &)>, std::function<bool(char[attributeCharSize], char[attributeCharSize])>, std::function<std::size_t(char[attributeCharSize])>> extendible_hash_index{FILENAME, attribute2, isPrimaryKey, index, equal, hash}; \
-        extendible_hash_index.create_index(); \
-    } \
-}
-
+    if (queryResult.selectedAttribute == attribute2) { \
+        if (queryResult.indexValue == "Hash") { \
+            std::function<bool(char[attributeCharSize], char[attributeCharSize])> equal = \
+                [](char a[attributeCharSize], char b[attributeCharSize]) -> bool { \
+                return std::string(a) == std::string(b); \
+            }; \
+            std::function<char *(MovieRecord &)> index = [=](MovieRecord &record) { \
+                return record.attribute1; \
+            }; \
+            std::hash<std::string> hasher; \
+            std::function<std::size_t(char[attributeCharSize])> hash = \
+                [&hasher](char key[attributeCharSize]) { return hasher(std::string(key)); }; \
+            ExtendibleHashFile<char[attributeCharSize], \
+                               MovieRecord, \
+                               attributeCharSize, \
+                               std::function<char *(MovieRecord &)>, \
+                               std::function<bool(char[attributeCharSize], char[attributeCharSize])>, \
+                               std::function<std::size_t(char[attributeCharSize])>> \
+                extendible_hash_index{FILENAME, attribute2, isPrimaryKey, index, equal, hash}; \
+            extendible_hash_index.create_index(); \
+        } \
+    }
 
 Widget::Widget(QWidget *parent)
     : QWidget(parent)
@@ -175,12 +201,10 @@ void Widget::execute_action()
         queryResult = parsero.query(consulta->text().toStdString());
         result->setText(consulta->text());
         result->setStyleSheet("color: black");
-    }
-    catch(std::runtime_error e) {
+    } catch (std::runtime_error e) {
         result->setText("Sentencia SQL inválida.");
         result->setStyleSheet("color: red;");
-    }
-    catch(std::range_error e) {
+    } catch (std::range_error e) {
         result->setText("Sentencia SQL inválida.");
         result->setStyleSheet("color: red;");
     }

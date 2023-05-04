@@ -295,8 +295,7 @@ class ExtendibleHashFile {
     Index index;                             //< Receives a `RecordType` and returns his `KeyType` associated
     Equal equal;                             //< Returns `true` if the first parameter is greater than the second and `false` otherwise
     Hash hash_function;                      // < Hash function
-    ExtendibleHash<global_depth> *hash_index;// < Extendible hash index (stored in RAM)
-
+    ExtendibleHash<global_depth> *hash_index = nullptr; // < Extendible hash index (stored in RAM)
 
     /*
      * Returns a binary sequence of the hash key.
@@ -599,7 +598,9 @@ public:
     }
 
     virtual ~ExtendibleHashFile() {
-        delete hash_index;
+        if (hash_index != nullptr) {
+            delete hash_index;
+        }
     }
 };
 
