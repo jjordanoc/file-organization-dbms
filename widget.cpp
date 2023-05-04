@@ -116,7 +116,17 @@ const std::string FILENAME = "database/movies_and_series.dat";
 
 #define CREATE_INDEX_BY_ATTRIBUTE(attribute1, attribute2, attributeType, isPrimaryKey) \
     if (queryResult.selectedAttribute == attribute2) { \
-        if (queryResult.indexValue == "Hash") { \
+        if (queryResult.indexValue == "ISAM") { \
+            std::function<int(MovieRecord &)> index = [=](MovieRecord &record) { \
+                return record.dataId; \
+            }; \
+            ISAM<true, int, MovieRecord> isam{FILENAME, "dataId", index}; \
+            if (!isam) { \
+                isam.create_index(); \
+            } else { \
+                std::cout << "ISAM index already created." << std::endl; \
+            } \
+        } else if (queryResult.indexValue == "Hash") { \
             std::function<attributeType(MovieRecord &)> index = [=](MovieRecord &record) { \
                 return record.attribute1; \
             }; \
@@ -295,11 +305,6 @@ Widget::Widget(QWidget *parent)
     connect(boton, SIGNAL(clicked()), this, SLOT(SetQuery()));
     connect(&this->futureWatcher, &QFutureWatcher<void>::finished, this, &Widget::onQueryFinished);
     connect(&this->futureWatcher, &QFutureWatcher<void>::started, this, &Widget::onQueryStarted);
-    //    std::function<int(MovieRecord &)> index = [=](MovieRecord &record) { return record.dataId; };
-    //    ISAM<true, int, MovieRecord> isam{FILENAME, "dataId", index};
-    //    if (!isam) {
-    //        isam.create_index();
-    //    }
 }
 
 Widget::~Widget()
@@ -308,16 +313,18 @@ Widget::~Widget()
 
 void Widget::SetQuery()
 {
-    QFuture<void> result = QtConcurrent::run([this]() {
+    QFuture<TimedResult<void>> result = QtConcurrent::run([this]() -> TimedResult<void> {
         auto operation = [&]() { this->execute_action(); };
         TimedResult r = time_function(operation);
-        this->update_time(r);
+        return r;
     });
     futureWatcher.setFuture(result);
 }
 
 void Widget::onQueryFinished()
 {
+    TimedResult r = futureWatcher.result();
+    this->update_time(r);
     this->displayRecords(queryRecords);
     this->tiempoResult->setStyleSheet("color: black;");
     this->boton->setEnabled(true);

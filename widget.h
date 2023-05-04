@@ -36,7 +36,7 @@ private slots:
     void onQueryStarted();
 
 private:
-    QFutureWatcher<void> futureWatcher{};
+    QFutureWatcher<TimedResult<void>> futureWatcher{};
     std::vector<MovieRecord> queryRecords{};
     Ui::Widget *ui;
     QVBoxLayout* global;

@@ -509,7 +509,7 @@ public:
      */
     void insert(RecordType &record, const long &record_ref) {
         SAFE_FILE_OPEN(hash_file, hash_file_name, flags)
-        SAFE_FILE_OPEN(index_file, hash_file_name, flags | std::ios::trunc)
+        SAFE_FILE_OPEN(index_file, index_file_name, flags | std::ios::trunc)
         _insert(record, record_ref);
         hash_index->write_to_disk(index_file);
         hash_file.close();
