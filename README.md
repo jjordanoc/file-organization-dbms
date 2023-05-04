@@ -104,7 +104,43 @@ _Las palabras en mayúscula y otros se tratan como símbolos terminales, mientra
 Como se puede observar, el parseo tiene algunas limitaciones, puesto que solo recibe a la tabla _movies_, mientras solo puede leer algunas
 columnas ya definidas. En el caso de los tipos de índices se puede tolerar ese ajuste.
 
-## Caso de uso
+
+## Experimentación
+
+Hemos realizado algunas consultas que demuestran la eficiencia de los índice para buscar registros.
+
+```sql
+SELECT * FROM movies WHERE endYear = 2014;
+```
+
+|     Método      | Tiempo de ejecución (ms) | Tiempo de creación de índice (s)  |
+|:---------------:|:------------------------:|:---------------------------------:|
+| Extendible Hash |          15.303          |               0.953               |
+|       AVL       |          110.59          |               7.07                |
+|     Lineal      |         129.121          |                 -                 |
+
+
+
+```sql
+SELECT * FROM movies WHERE title = "Star Wars";
+```
+
+|     Método      | Tiempo de ejecución (ms) | Tiempo de creación de índice (s) |
+|:---------------:|:------------------------:|:--------------------------------:|
+| Extendible Hash |           1.73           |               1.73               |
+|       AVL       |           1.40           |               38.0               |
+|     Lineal      |          100.1           |                -                 |
+
+
+```sql
+SELECT * FROM movies WHERE releaseYear BETWEEN 1800 AND 1900;
+```
+
+| Método | Tiempo de ejecución (ms) | Tiempo de creación de índice (s)  |
+|:------:|:------------------------:|:---------------------------------:|
+|  AVL   |          11.126          |               11.23               |                              
+| Lineal |          122.64          |                 -                 |
+
 
 ## Conclusiones
 - El método **Top-Down: Recursive-Descent** para realizar el parseo es fácil de entender y sencillo de implementar. Sin embargo, por su simplicidad genera
