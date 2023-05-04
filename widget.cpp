@@ -10,7 +10,7 @@
 
 #define FILENAME "database/movies_and_series.dat"
 
-#define     SELECT_BY_ATTRIBUTE(attribute1, attribute2, attributeType, isPrimaryKey) \
+#define SELECT_BY_ATTRIBUTE(attribute1, attribute2, attributeType, isPrimaryKey) \
 if(queryResult.selectedAttribute == attribute2){ \
     std::function<attributeType(MovieRecord &)> index = [=](MovieRecord &record) { return record.attribute1; }; \
     ExtendibleHashFile<attributeType, MovieRecord> extendible_hash_index{FILENAME, attribute2, isPrimaryKey, index}; \
@@ -41,17 +41,17 @@ if(queryResult.selectedAttribute == attribute2){ \
     std::function<char *(MovieRecord &)> index = [=](MovieRecord &record) { return record.attribute1; }; \
     std::hash<std::string> hasher; \
     std::function<std::size_t(char[attributeCharSize])> hash = [&hasher](char key[attributeCharSize]) { return hasher(std::string(key)); }; \
-    ExtendibleHashFile<char[attributeCharSize], MovieRecord, attributeCharSize, std::function<char *(MovieRecord &)>, std::function<bool(char[attributeCharSize], char[attributeCharSize])>, std::function<std::size_t(char[attributeCharSize])>> extendible_hash_index{"movies_and_series.dat", attribute2, isPrimaryKey, index, equal, hash}; \
+    ExtendibleHashFile<char[attributeCharSize], MovieRecord, attributeCharSize, std::function<char *(MovieRecord &)>, std::function<bool(char[attributeCharSize], char[attributeCharSize])>, std::function<std::size_t(char[attributeCharSize])>> extendible_hash_index{FILENAME, attribute2, isPrimaryKey, index, equal, hash}; \
     if(extendible_hash_index){ \
         std::string tmp = queryResult.atributos[queryResult.selectedAttribute]; \
-        std::cout << tmp << std::endl; \
-        char str[attributeCharSize]; \
-        int cont = 0; \
-        for(int i = 0; i < tmp.length(); i++, cont++){ \
-            str[i] = tmp[i]; \
+        std::cout << "Result from parser: "<< tmp << std::endl; \
+        char str[attributeCharSize+2]; \
+        int i = 0; \
+        for(; i < tmp.length() - 2; i++){ \
+            str[i] = tmp[i+1]; \
         } \
-        str[cont] = '\\'; \
-        str[cont+1] = '0'; \
+        str[i+1] = '\0'; \
+        std::cout << "After removing things: "<< str << std::endl; \
         auto res = extendible_hash_index.search(str); \
         this->displayRecords(res); \
         for (auto &record: res) { \
@@ -96,7 +96,7 @@ if(queryResult.selectedAttribute == attribute2){ \
         std::function<char *(MovieRecord &)> index = [=](MovieRecord &record) { return record.attribute1; }; \
         std::hash<std::string> hasher; \
         std::function<std::size_t(char[attributeCharSize])> hash = [&hasher](char key[attributeCharSize]) { return hasher(std::string(key)); }; \
-        ExtendibleHashFile<char[attributeCharSize], MovieRecord, attributeCharSize, std::function<char *(MovieRecord &)>, std::function<bool(char[attributeCharSize], char[attributeCharSize])>, std::function<std::size_t(char[attributeCharSize])>> extendible_hash_index{"movies_and_series.dat", attribute2, isPrimaryKey, index, equal, hash}; \
+        ExtendibleHashFile<char[attributeCharSize], MovieRecord, attributeCharSize, std::function<char *(MovieRecord &)>, std::function<bool(char[attributeCharSize], char[attributeCharSize])>, std::function<std::size_t(char[attributeCharSize])>> extendible_hash_index{FILENAME, attribute2, isPrimaryKey, index, equal, hash}; \
         extendible_hash_index.create_index(); \
     } \
 }
@@ -105,7 +105,7 @@ if(queryResult.selectedAttribute == attribute2){ \
 Widget::Widget(QWidget *parent)
     : QWidget(parent)
 {
-    setWindowTitle("Proyecto");
+    setWindowTitle("4^J DB");
     setWindowState(Qt::WindowMaximized);
     global = new QVBoxLayout(this);
     H1 = new QHBoxLayout();
@@ -176,10 +176,15 @@ void Widget::execute_action()
         result->setText(consulta->text());
         result->setStyleSheet("color: black");
     }
-    catch(std::exception e) {
+    catch(std::runtime_error e) {
         result->setText("Sentencia SQL inválida.");
         result->setStyleSheet("color: red;");
     }
+    catch(std::range_error e) {
+        result->setText("Sentencia SQL inválida.");
+        result->setStyleSheet("color: red;");
+    }
+
     if(queryResult.queryType == "SELECT"){
         SELECT_BY_ATTRIBUTE(dataId, "dataId",int,true);
         SELECT_BY_ATTRIBUTE_CHAR(contentType, "contentType",16,false);
@@ -213,6 +218,6 @@ void Widget::execute_action()
 template<typename T>
 void Widget::update_time(TimedResult<T> &r)
 {
-    QString timeText = QString::number(r.duration) + " μs";
+    QString timeText = QString::number(r.duration / 1000) + " ms";
     tiempoResult->setText(timeText);
 }

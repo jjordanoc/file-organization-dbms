@@ -3,3 +3,4 @@
 *.ehash
 *.ehashdir
 CMakeLists.txt.user.cdf46ac
+.idea
