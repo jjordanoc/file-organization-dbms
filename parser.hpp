@@ -24,7 +24,8 @@ struct parserResult{
     std::vector<std::string> attributes = {"dataId", "contentType", "title", "length", "releaseYear", "endYear", "votes", "rating", "gross", "certificate", "description"};
     std::vector<std::string> indexes = {"ISAM", "Hash", "AVL"};
 
-    parserResult() {
+    parserResult()
+    {
         for(const auto& atributo: attributes){
             atributos[atributo] = "";
         }
@@ -270,7 +271,7 @@ struct parserSQL {
         std::istream_iterator<std::string> end;
         std::vector<std::string> cadena2(begin, end);
         cadena2.emplace_back("$");
-
+        pos = 0;
         int cont = 0;
         while (cont < cadena2.size() - 1) {
             if ((cadena2[cont][0] == '\"' or cadena2[cont][0] == '(') &&

@@ -53,7 +53,7 @@ const std::string FILENAME = "database/movies_and_series.dat";
             [&hasher](char key[attributeCharSize]) { return hasher(std::string(key)); }; \
         ExtendibleHashFile<char[attributeCharSize], \
                            MovieRecord, \
-                           attributeCharSize, \
+                           16, \
                            std::function<char *(MovieRecord &)>, \
                            std::function<bool(char[attributeCharSize], char[attributeCharSize])>, \
                            std::function<std::size_t(char[attributeCharSize])>> \
@@ -124,7 +124,7 @@ const std::string FILENAME = "database/movies_and_series.dat";
                 [&hasher](char key[attributeCharSize]) { return hasher(std::string(key)); }; \
             ExtendibleHashFile<char[attributeCharSize], \
                                MovieRecord, \
-                               attributeCharSize, \
+                               16, \
                                std::function<char *(MovieRecord &)>, \
                                std::function<bool(char[attributeCharSize], char[attributeCharSize])>, \
                                std::function<std::size_t(char[attributeCharSize])>> \
@@ -140,7 +140,7 @@ Widget::Widget(QWidget *parent)
     setWindowState(Qt::WindowMaximized);
     global = new QVBoxLayout(this);
     H1 = new QHBoxLayout();
-    auto H2 = new QHBoxLayout();
+    H2 = new QHBoxLayout();
     tabla = new QTableWidget();
     consulta = new QLineEdit();
     tiempoResult = new QLabel();
@@ -159,7 +159,9 @@ Widget::Widget(QWidget *parent)
     global->addLayout(H1);
     global->addWidget(tabla);
     global->addLayout(H2);
-    connect(boton,SIGNAL(clicked()),this,SLOT(SetQuery()));
+    connect(boton, SIGNAL(clicked()), this, SLOT(SetQuery()));
+    connect(&this->futureWatcher, &QFutureWatcher<void>::finished, this, &Widget::onQueryFinished);
+    connect(&this->futureWatcher, &QFutureWatcher<void>::started, this, &Widget::onQueryStarted);
 }
 
 Widget::~Widget()
@@ -169,15 +171,24 @@ Widget::~Widget()
 void Widget::SetQuery()
 {
     QFuture<void> result = QtConcurrent::run([this]() {
-        this->boton->setEnabled(false);
-        this->tiempoResult->setText(tr("Ejecutando consulta..."));
-        this->tiempoResult->setStyleSheet("color: blue;");
         auto operation = [&]() { this->execute_action(); };
         TimedResult r = time_function(operation);
         this->update_time(r);
-        this->tiempoResult->setStyleSheet("color: black;");
-        this->boton->setEnabled(true);
     });
+    futureWatcher.setFuture(result);
+}
+
+void Widget::onQueryFinished()
+{
+    this->tiempoResult->setStyleSheet("color: black;");
+    this->boton->setEnabled(true);
+}
+
+void Widget::onQueryStarted()
+{
+    this->boton->setEnabled(false);
+    this->tiempoResult->setText(tr("Ejecutando consulta..."));
+    this->tiempoResult->setStyleSheet("color: blue;");
 }
 
 void Widget::displayRecords(std::vector<MovieRecord> &records)

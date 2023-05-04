@@ -2,6 +2,8 @@
 #ifndef WIDGET_H
 #define WIDGET_H
 
+#include <QFuture>
+#include <QFutureWatcher>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -12,6 +14,7 @@
 #include "MovieRecord.h"
 #include "parser.hpp"
 #include "utils.hpp"
+
 QT_BEGIN_NAMESPACE
 namespace Ui { class Widget; }
 QT_END_NAMESPACE
@@ -29,10 +32,15 @@ signals:
 
 private slots:
     void SetQuery();
+    void onQueryFinished();
+    void onQueryStarted();
+
 private:
+    QFutureWatcher<void> futureWatcher{};
     Ui::Widget *ui;
     QVBoxLayout* global;
     QHBoxLayout* H1;
+    QHBoxLayout *H2;
     QTableWidget* tabla;
     QLineEdit* consulta;
     QLabel * result;
