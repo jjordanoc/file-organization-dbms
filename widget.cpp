@@ -91,6 +91,28 @@ const std::string FILENAME = "database/movies_and_series.dat";
         } \
     }
 
+#define SELECT_BY_RANGE(attribute1, attribute2, attributeType, isPrimaryKey) \
+    if (queryResult.selectedAttribute == attribute2) { \
+        std::function<attributeType(MovieRecord &)> index = [=](MovieRecord &record) { \
+            return record.attribute1; \
+        }; \
+        AVLFile<attributeType, MovieRecord> avl(FILENAME, attribute2, isPrimaryKey, index); \
+        auto rangeStart = static_cast<attributeType>(std::stof(queryResult.range1)); \
+        auto rangeEnd = static_cast<attributeType>(std::stof(queryResult.range2)); \
+        if (avl) { \
+            std::cout << "Using AVL" << std::endl; \
+            auto res = avl.range_search(rangeStart, rangeEnd); \
+            this->displayRecords(res); \
+        } else { \
+            std::cout << "Using linear search." << std::endl; \
+            auto res = range_search<attributeType, MovieRecord, decltype(index)>(FILENAME, \
+                                                                                 rangeStart, \
+                                                                                 rangeEnd, \
+                                                                                 index); \
+            this->displayRecords(res); \
+        } \
+    }
+
 #define CREATE_INDEX_BY_ATTRIBUTE(attribute1, attribute2, attributeType, isPrimaryKey) \
     if (queryResult.selectedAttribute == attribute2) { \
         if (queryResult.indexValue == "Hash") { \
@@ -159,6 +181,29 @@ const std::string FILENAME = "database/movies_and_series.dat";
         } \
     }
 
+#define DELETE_BY_ATTRIBUTE(attribute1, attribute2, attributeType, isPrimaryKey) \
+    if (queryResult.selectedAttribute == attribute2) { \
+        std::function<attributeType(MovieRecord &)> index = [=](MovieRecord &record) { \
+            return record.attribute1; \
+        }; \
+        ExtendibleHashFile<attributeType, MovieRecord> extendible_hash_index{FILENAME, \
+                                                                             attribute2, \
+                                                                             isPrimaryKey, \
+                                                                             index}; \
+        AVLFile<attributeType, MovieRecord> avl(FILENAME, attribute2, isPrimaryKey, index); \
+        auto attributeResult = static_cast<attributeType>( \
+            std::stof(queryResult.atributos[queryResult.selectedAttribute])); \
+        if (extendible_hash_index) { \
+            std::cout << "Using Hash" << std::endl; \
+            extendible_hash_index.remove(attributeResult); \
+        } else if (avl) { \
+            std::cout << "Using AVL" << std::endl; \
+            avl.remove(attributeResult); \
+        } else { \
+            std::cout << "Couldn't delete due to lack of strategy information." << std::endl; \
+        } \
+    }
+
 Widget::Widget(QWidget *parent)
     : QWidget(parent)
 {
@@ -174,7 +219,7 @@ Widget::Widget(QWidget *parent)
     boton = new QPushButton("Enviar");
     tabla->setColumnCount(11);
     tabla->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    consulta->setGeometry(0,0,200,200);
+    consulta->setGeometry(0, 0, 200, 200);
     consulta->setPlaceholderText("Ingrese consulta: ");
     H1->addWidget(consulta);
     H1->addWidget(boton);
@@ -251,17 +296,27 @@ void Widget::execute_action()
     }
 
     if(queryResult.queryType == "SELECT"){
-        SELECT_BY_ATTRIBUTE(dataId, "dataId",int,true);
-        SELECT_BY_ATTRIBUTE_CHAR(contentType, "contentType",16,false);
-        SELECT_BY_ATTRIBUTE_CHAR(title, "title",256, false);
-        SELECT_BY_ATTRIBUTE(length,"length",short, false);
-        SELECT_BY_ATTRIBUTE(releaseYear, "releaseYear", short, false);
-        SELECT_BY_ATTRIBUTE(endYear, "endYear", short, false);
-        SELECT_BY_ATTRIBUTE(votes, "votes",int,false);
-        SELECT_BY_ATTRIBUTE(rating, "rating",short,false);
-        SELECT_BY_ATTRIBUTE(gross, "gross",int,false);
-        SELECT_BY_ATTRIBUTE_CHAR(certificate, "certificate", 16, false);
-        SELECT_BY_ATTRIBUTE_CHAR(description,"description", 512,false);
+        if (queryResult.range1 == "") {
+            SELECT_BY_ATTRIBUTE(dataId, "dataId", int, true);
+            SELECT_BY_ATTRIBUTE_CHAR(contentType, "contentType", 16, false);
+            SELECT_BY_ATTRIBUTE_CHAR(title, "title", 256, false);
+            SELECT_BY_ATTRIBUTE(length, "length", short, false);
+            SELECT_BY_ATTRIBUTE(releaseYear, "releaseYear", short, false);
+            SELECT_BY_ATTRIBUTE(endYear, "endYear", short, false);
+            SELECT_BY_ATTRIBUTE(votes, "votes", int, false);
+            SELECT_BY_ATTRIBUTE(rating, "rating", float, false);
+            SELECT_BY_ATTRIBUTE(gross, "gross", int, false);
+            SELECT_BY_ATTRIBUTE_CHAR(certificate, "certificate", 16, false);
+            SELECT_BY_ATTRIBUTE_CHAR(description, "description", 512, false);
+        } else {
+            SELECT_BY_RANGE(dataId, "dataId", int, true);
+            SELECT_BY_RANGE(length, "length", short, false);
+            SELECT_BY_RANGE(releaseYear, "releaseYear", short, false);
+            SELECT_BY_RANGE(endYear, "endYear", short, false);
+            SELECT_BY_RANGE(votes, "votes", int, false);
+            SELECT_BY_RANGE(rating, "rating", float, false);
+            SELECT_BY_RANGE(gross, "gross", int, false);
+        }
     }
     else if(queryResult.queryType == "CREATE"){
         CREATE_INDEX_BY_ATTRIBUTE(dataId, "dataId",int,true);
@@ -271,10 +326,18 @@ void Widget::execute_action()
         CREATE_INDEX_BY_ATTRIBUTE(releaseYear, "releaseYear", short, false);
         CREATE_INDEX_BY_ATTRIBUTE(endYear, "endYear", short, false);
         CREATE_INDEX_BY_ATTRIBUTE(votes, "votes",int,false);
-        CREATE_INDEX_BY_ATTRIBUTE(rating, "rating",short,false);
+        CREATE_INDEX_BY_ATTRIBUTE(rating, "rating", float, false);
         CREATE_INDEX_BY_ATTRIBUTE(gross, "gross",int,false);
         CREATE_INDEX_BY_ATTRIBUTE_CHAR(certificate, "certificate", 16, false);
         CREATE_INDEX_BY_ATTRIBUTE_CHAR(description,"description", 512,false);
+    } else if (queryResult.queryType == "DELETE") {
+        DELETE_BY_ATTRIBUTE(dataId, "dataId", int, true);
+        DELETE_BY_ATTRIBUTE(length, "length", short, false);
+        DELETE_BY_ATTRIBUTE(releaseYear, "releaseYear", short, false);
+        DELETE_BY_ATTRIBUTE(endYear, "endYear", short, false);
+        DELETE_BY_ATTRIBUTE(votes, "votes", int, false);
+        DELETE_BY_ATTRIBUTE(rating, "rating", float, false);
+        DELETE_BY_ATTRIBUTE(gross, "gross", int, false);
     }
 }
 

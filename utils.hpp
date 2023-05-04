@@ -81,4 +81,24 @@ std::vector<RecordType> linear_search(std::string filename,
     return result;
 }
 
+template<typename KeyType, typename RecordType, typename Index, typename Greater = std::greater<KeyType>>
+std::vector<RecordType> range_search(std::string filename,
+                                     KeyType start,
+                                     KeyType end,
+                                     Index index,
+                                     Greater greater = std::greater<KeyType>{})
+{
+    std::vector<RecordType> result;
+    std::fstream file(filename, std::ios::in | std::ios::binary);
+    while (!file.eof()) {
+        RecordType tmp{};
+        file.read((char *) &tmp, sizeof(tmp));
+        if (!file.eof() && !greater(start, index(tmp)) && !greater(index(tmp), end)) {
+            result.push_back(tmp);
+        }
+    }
+    file.close();
+    return result;
+}
+
 #endif

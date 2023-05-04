@@ -36,6 +36,8 @@ struct parserResult{
         selectedAttribute = "";
         indexName = "";
         indexValue = "";
+        range1 = "";
+        range2 = "";
         selectedAttributes.clear();
         atributos.clear();
     }
@@ -98,7 +100,8 @@ struct parserSQL {
         else error();
     }
 
-    void value() {
+    void value()
+    {
         if (regex_match(token, std::regex("(-?[0-9.a-zA-Z]*)"))
             || regex_match(token, std::regex(R"((["(][()\s-+a-z,.0-9A-Z:;\"\']*[")]))"))) {
             getToken();

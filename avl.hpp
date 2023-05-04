@@ -455,7 +455,6 @@ public:
         file.open(file_name, std::ios::app | std::ios::ate);
         long size = file.tellp();
         file.close();
-        std::cout << "Size: " << size << std::endl;
         return (size > 0);
     }
 
