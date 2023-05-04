@@ -409,7 +409,6 @@ void Widget::onQueryFinished()
     this->displayRecords(queryRecords);
     this->tiempoResult->setStyleSheet("color: black;");
     this->boton->setEnabled(true);
-    queryResult.killSelf();
 }
 
 void Widget::onQueryStarted()
@@ -573,6 +572,7 @@ void Widget::execute_action()
         INSERT_VALUE_BY_ATTRIBUTE_CHAR(certificate, "certificate", 16, false, record, position);
         INSERT_VALUE_BY_ATTRIBUTE_CHAR(description, "description", 512, false, record, position);
     }
+    queryResult.killSelf();
 }
 
 template<typename T>

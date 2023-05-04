@@ -268,7 +268,7 @@ struct parserSQL {
         //SELECT only works if contentType = "something"
         //INSERT only works if (123,2,3)
         //s = R"(CREATE INDEX indexito ON movies USING ISAM)";
-
+        parsero.killSelf();
         std::stringstream ss(s);
         std::istream_iterator<std::string> begin(ss);
         std::istream_iterator<std::string> end;

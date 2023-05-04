@@ -121,11 +121,16 @@ void linear_delete(std::string filename,
                    Equal equal = std::equal_to<KeyType>{})
 {
     std::fstream file(filename, std::ios::in | std::ios::binary | std::ios::out);
+    file.seekg(0);
+    file.seekp(0);
     while (!file.eof()) {
         RecordType tmp{};
         long pos = file.tellg();
         file.read((char *) &tmp, sizeof(tmp));
+        std::cout << "here" << std::endl;
         if (!file.eof() && equal(index(tmp), key)) {
+            std::cout << tmp.to_string() << std::endl;
+            file.seekg(pos);
             file.seekp(pos);
             tmp.removed = true;
             file.write((char *) &tmp, sizeof(tmp));
