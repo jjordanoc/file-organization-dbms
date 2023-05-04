@@ -122,6 +122,6 @@ columnas ya definidas. En el caso de los tipos de índices se puede tolerar ese 
 
 ## Referencias bibliográficas
 
-- K. C. Louden, "Compiler Construction: Principles and Practice". Available: http://grsotudeh.ir/compiler/compiler_ebooks/compiler-construction-principles-and-practice-k-c-louden-pws-1997-cmp-2002-592s.pdf .[Accessed: Apr 26, 2023]
-- asd
-- xyz
+- [1] K. C. Louden, "Compiler Construction: Principles and Practice". Available: http://grsotudeh.ir/compiler/compiler_ebooks/compiler-construction-principles-and-practice-k-c-louden-pws-1997-cmp-2002-592s.pdf .[Accessed: Apr 26, 2023]
+
+- [2] Elmasri, R. & Navathe, S. (2010). Indexing Structures for Files. In [_Fundamentals of Database Systems_](https://docs.ccsu.edu/curriculumsheets/ChadTest.pdf) (pp. 643-646). Addison–Wesley.
