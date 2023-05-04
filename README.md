@@ -35,6 +35,7 @@ Además, se pide implementó un **parser** y un GUI en QT para una mejor visuali
 hemos usado un dataset de Películas IMBD. Esta elección fue debida a los siguientes factores:
 - Los atributos son fáciles de tratar: la mayoría son de tipo string o int.
 - Los datos son requeridos obligatoriamente para todos los atributos menos uno: el "certificate". Esto hace que nuestro potencial de valores NULL disminuya considerablemente.
+- El DataSet está compuesto de la mezcla de dos DataSets (uno de peliculas y uno de series), combinándolos en más 100'000 registros listos para organizar en un sistema de ficheros, lo que lo convierte en un buen candidato para indexar dada la cantidad de registros.
 - El DataSet solo consta de una tabla, por lo que facilita su manejo y manipulación para los índices a utilizar.
 
 A continuación, explicamos los atributos del DataSet previamente mencionado.
