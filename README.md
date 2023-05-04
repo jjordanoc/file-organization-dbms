@@ -6,7 +6,7 @@ Para este proyecto, se nos ha pedido crear y manipular un DataSet usando estrate
 
 ### Objetivos
 #### Principal
-- Conocer el funciomaniento de la manipulación de **metadata** en una base de datos.
+- Conocer el funciomaniento de la manipulación de **metadata** en una base de datos usando estrategias de organización de archivos.
 #### Secundarios
 - Identificar las ventajas y desventajas de cada estrategia utilizada. 
 - Analizar el comportamiento computacional al implementar una base de datos.
