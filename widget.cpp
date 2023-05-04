@@ -92,7 +92,7 @@ const std::string FILENAME = "database/movies_and_series.dat";
                                                                                  isPrimaryKey, \
                                                                                  index}; \
             if (extendible_hash_index) { \
-                std::cout << attribute2 << " index already exists with Hash" << std::endl; \
+                std::cout << attribute2 << "Index already exists with Hash" << std::endl; \
             } else { \
                 extendible_hash_index.create_index(); \
             } \
@@ -101,6 +101,11 @@ const std::string FILENAME = "database/movies_and_series.dat";
                 return movie.attribute1; \
             }; \
             AVLFile<attributeType, MovieRecord> avl(FILENAME, attribute2, isPrimaryKey, index); \
+            if (avl) { \
+                std::cout << attribute2 << "Index already exists with AVL" << std::endl; \
+            } else { \
+                avl.create_index(); \
+            } \
         } \
     }
 
