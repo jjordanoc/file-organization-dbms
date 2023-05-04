@@ -211,7 +211,10 @@ const std::string FILENAME = "database/movies_and_series.dat";
             std::cout << "Using AVL" << std::endl; \
             avl.remove(attributeResult); \
         } else { \
-            std::cout << "Couldn't delete due to lack of strategy information." << std::endl; \
+            std::cout << "Using linear delete." << std::endl; \
+            linear_delete<attributeType, MovieRecord, decltype(index)>(FILENAME, \
+                                                                       attributeResult, \
+                                                                       index); \
         } \
     }
 
@@ -256,7 +259,9 @@ const std::string FILENAME = "database/movies_and_series.dat";
             std::cout << "Using AVL" << std::endl; \
             avl.remove(buf); \
         } else { \
-            std::cout << "Falta linear search." << std::endl; \
+            std::cout << "Using linear delete." << std::endl; \
+            linear_delete<char[attributeCharSize], MovieRecord, decltype(index), decltype(equal)>( \
+                FILENAME, buf, index, equal); \
         } \
     }
 

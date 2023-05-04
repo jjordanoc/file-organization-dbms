@@ -73,7 +73,7 @@ std::vector<RecordType> linear_search(std::string filename,
     while (!file.eof()) {
         RecordType tmp{};
         file.read((char *) &tmp, sizeof(tmp));
-        if (!file.eof() && equal(index(tmp), key)) {
+        if (!file.eof() && equal(index(tmp), key) && !tmp.removed) {
             result.push_back(tmp);
         }
     }
@@ -93,7 +93,8 @@ std::vector<RecordType> range_search(std::string filename,
     while (!file.eof()) {
         RecordType tmp{};
         file.read((char *) &tmp, sizeof(tmp));
-        if (!file.eof() && !greater(start, index(tmp)) && !greater(index(tmp), end)) {
+        if (!file.eof() && !greater(start, index(tmp)) && !greater(index(tmp), end)
+            && !tmp.removed) {
             result.push_back(tmp);
         }
     }
@@ -111,6 +112,26 @@ long insert_register_on_file(std::string filename, RecordType &record)
     file << std::flush;
     file.close();
     return pos;
+}
+
+template<typename KeyType, typename RecordType, typename Index, typename Equal = std::equal_to<KeyType>>
+void linear_delete(std::string filename,
+                   KeyType key,
+                   Index index,
+                   Equal equal = std::equal_to<KeyType>{})
+{
+    std::fstream file(filename, std::ios::in | std::ios::binary | std::ios::out);
+    while (!file.eof()) {
+        RecordType tmp{};
+        long pos = file.tellg();
+        file.read((char *) &tmp, sizeof(tmp));
+        if (!file.eof() && equal(index(tmp), key)) {
+            file.seekp(pos);
+            tmp.removed = true;
+            file.write((char *) &tmp, sizeof(tmp));
+        }
+    }
+    file.close();
 }
 
 #endif
