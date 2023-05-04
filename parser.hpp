@@ -1,6 +1,6 @@
 
-#ifndef PARSER_H
-#define PARSER_H
+#ifndef PARSER_HPP
+#define PARSER_HPP
 #include <iostream>
 #include <string>
 #include <vector>
@@ -23,41 +23,6 @@ struct parserResult{
     std::vector<std::string> tables = {"movies"};
     std::vector<std::string> attributes = {"dataId", "contentType", "title", "length", "releaseYear", "endYear", "votes", "rating", "gross", "certificate", "description"};
     std::vector<std::string> indexes = {"ISAM", "Hash", "AVL"};
-
-    void select_inst(){
-        std::cout << "Table: " << table << std::endl;
-        if(selectedAttributes.empty()) std::cout << "\nShown attributes: all\n";
-        else{
-            std::cout << "\nShown attributes:\n";
-            for(const auto& atributo: selectedAttributes)
-                std::cout << atributo << "\t";
-            std::cout << "\n\nSearch by column: " << selectedAttribute << std::endl;
-
-            std::cout << "\nWhere match: " << atributos[selectedAttribute] << std::endl;
-        }
-    }
-
-    void insert_inst(){
-        std::cout << "Table: " << table << std::endl;
-        std::cout << "\nInsert a record which values are:\n";
-        for(const auto& atributo: attributes){
-            std::cout << atributos[atributo] << "\t";
-        }
-    }
-
-    void delete_inst(){
-        std::cout << "Table: " << table << std::endl;
-
-        std::cout << "\nDelete registers by column: " << selectedAttribute << std::endl;
-
-        std::cout << "\nWhere match: " << atributos[selectedAttribute] << std::endl;
-    }
-
-    void create_index() const{
-        std::cout << "Indexed column: " << selectedAttribute << std::endl;
-        std::cout << "\nIndex name: " << indexName << std::endl;
-        std::cout << "\nIndex type: " << indexValue << std::endl;
-    }
 
     parserResult() {
         for(const auto& atributo: attributes){
@@ -275,22 +240,18 @@ struct parserSQL {
         if (token == "SELECT") {
             match("SELECT");
             select();
-            parsero.select_inst();
             parsero.queryType = "SELECT";
         } else if (token == "INSERT") {
             match("INSERT");
             insert();
-            parsero.insert_inst();
             parsero.queryType = "INSERT";
         } else if (token == "DELETE") {
             match("DELETE");
             deletex();
-            parsero.delete_inst();
             parsero.queryType = "DELETE";
         } else if (token == "CREATE") {
             match("CREATE");
             create();
-            parsero.create_index();
             parsero.queryType = "CREATE";
         } else {
             error();
@@ -350,5 +311,4 @@ struct parserSQL {
     }
 };
 
-
-#endif // PARSER_H
+#endif // PARSER_HPP

@@ -1,148 +1,54 @@
+//
+// Created by juandiego on 4/13/23.
+//
+
 #ifndef AVL_HPP
 #define AVL_HPP
 
 #define SEEK_ALL(file, pos) \
-file.seekg(pos);        \
+    file.seekg(pos); \
     file.seekp(pos);
 
 #define SEEK_ALL_RELATIVE(file, pos, relative) \
-file.seekg(pos, relative);                 \
+    file.seekg(pos, relative); \
     file.seekp(pos, relative);
 
+#include <fstream>
 #include <functional>
 #include <iostream>
-#include <fstream>
+#include <queue>
 #include <utility>
 #include <vector>
-#include <queue>
-#include <sstream>
-#include <cstring>
-#include <string>
-#include <chrono>
 
-namespace func {
+#include "node.hpp"
 
-    struct clock {
-        template<typename Function, typename... Params>
-        void operator()(const Function &fun, const std::string &function_name, const Params &...params) {
-            std::cout << "Executing function " << function_name << "..." << std::endl;
-            const auto start = std::chrono::steady_clock::now();
-            fun(params...);
-            const auto end = std::chrono::steady_clock::now();
-            const auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-            std::cout << "Executed function " << function_name << " in " << duration << " microseconds." << std::endl;
-        }
-    };
+template<typename KeyType,
+         typename RecordType,
+         typename Index = std::function<KeyType(RecordType &)>,
+         typename Greater = std::greater<KeyType>>
+class AVLFile
+{
+private:              // Member variables
+    long root;        //< Physical position of the first node
+    bool primary_key; //< Is `true` when indexing a primary key and `false` otherwise
 
-    template<typename T>
-    void copy1(T &a, const T &b) {
-        std::memcpy((char *) &a, (char *) &b, sizeof(T));
-    }
-
-    template<typename T>
-    void copy2(T &a, T &b) {
-        std::memcpy((char *) &a, (char *) &b, sizeof(T));
-    }
-
-    template<typename T>
-    void copy3(T &a, char *&b) {
-        std::memcpy((char *) &a, b, sizeof(T));
-    }
-
-    void read_bufferS(char buffer[], int size) {
-        std::string temp;
-        std::getline(std::cin >> std::ws, temp, '\n');
-        std::cin.clear();
-
-        for (int i = 0; i < size; ++i) {
-            buffer[i] = (i < temp.size()) ? temp[i] : '\0';
-        }
-
-        buffer[size - 1] = '\0';
-    }
-
-}
-
-
-/// nullptr file representation
-#define DISK_NULL (-1)
-#define INITIAL_RECORD (0)
-// for remove method purposes
-#define DETACH (-2)
-#define NOT_DETACH (-3)
-
-template<typename KeyType>
-struct Node {
-    KeyType key{};
-    long data_pointer = DISK_NULL;
-    long left = DISK_NULL;
-    long right = DISK_NULL;
-    long height = 0;
-    long next = DISK_NULL;
-
-    explicit Node() = default;
-
-    explicit Node(KeyType key_, long physical_position) : data_pointer(physical_position) {
-        func::copy1(key, key_);
-    }
-
-    Node<KeyType> &operator=(const Node<KeyType> &other) {
-        func::copy1(key, other.key);
-        next = other.next;
-        data_pointer = other.data_pointer;
-        return *this;
-    }
-
-    std::string to_string() {
-        std::stringstream ss;
-        ss << "<key: " << key << ", pointer: " << data_pointer << ", height: " << height << ", left: " << left
-           << ", right: " << right << ", next: " << next << ">";
-        return ss.str();
-    }
-};
-
-template<typename RecordType>
-std::ostream &operator<<(std::ostream &os, Node<RecordType> &node) {
-    os.write((char *) &node, sizeof(Node<RecordType>));
-    return os;
-}
-
-template<typename RecordType>
-std::istream &operator>>(std::istream &is, Node<RecordType> &node) {
-    is.read((char *) &node, sizeof(Node<RecordType>));
-    return is;
-}
-
-
-template<
-    typename KeyType,
-    typename RecordType,
-    typename Index = std::function<KeyType(RecordType &)>,
-    typename Greater = std::greater<KeyType>
-    >
-class AVLFile {
-private: // Member variables
-
-    long root;              //< Physical position of the first node
-    bool primary_key;       //< Is `true` when indexing a primary key and `false` otherwise
-
-    std::fstream file;      //< File object used to manage disk accesses
-    std::string file_name;  //< File name
+    std::fstream file;     //< File object used to manage disk accesses
+    std::string file_name; //< File name
 
     std::string heap_file_name;
 
     std::ios_base::openmode flags = (std::ios::out | std::ios::in | std::ios::binary);
 
     /* Generic purposes member variables */
-    Index index;            //< Receives a `RecordType` and returns his `KeyType` associated
-    Greater greater;        //< Returns `true` if the first parameter is greater than the second and `false` otherwise
+    Index index; //< Receives a `RecordType` and returns his `KeyType` associated
+    Greater greater; //< Returns `true` if the first parameter is greater than the second and `false` otherwise
 
-
-private: // Secondary helper functions related to "avl-balancing", "remove-find-successor" and "push-all-pointers"
-
+private
+    : // Secondary helper functions related to "avl-balancing", "remove-find-successor" and "push-all-pointers"
     /// Pushes in `pointers` all the `data_pointers` related to the same key (multi-value behavior)
     /// If the tree is indexing a non-repeatable key, enters to the iteration just once.
-    inline void push_all(long node_pos, std::vector<long> &pointers) {
+    inline void push_all(long node_pos, std::vector<long> &pointers)
+    {
         while (node_pos != DISK_NULL) {
             Node<KeyType> current;
             SEEK_ALL(file, node_pos)
@@ -153,7 +59,8 @@ private: // Secondary helper functions related to "avl-balancing", "remove-find-
     }
 
     /// Seeks and returns the height of the node located at `node_pos`
-    long height(long node_pos) {
+    long height(long node_pos)
+    {
         // If the record position is DISK_NULL, then his height is -1 (empty node)
         if (node_pos == DISK_NULL) {
             return -1;
@@ -168,7 +75,8 @@ private: // Secondary helper functions related to "avl-balancing", "remove-find-
     }
 
     /// Returns the balancing factor of a `node`
-    inline long balancing_factor(Node<KeyType> &node) {
+    inline long balancing_factor(Node<KeyType> &node)
+    {
         long lh = this->height(node.left);
         long rh = this->height(node.right);
 
@@ -176,7 +84,8 @@ private: // Secondary helper functions related to "avl-balancing", "remove-find-
     }
 
     /// Updates the `node` height after a new record is inserted in his subtree
-    void update_height(long node_pos, Node<KeyType> &node) {
+    void update_height(long node_pos, Node<KeyType> &node)
+    {
         // Calculates the left and right node heights
         long lh = this->height(node.left);
         long rh = this->height(node.right);
@@ -190,7 +99,8 @@ private: // Secondary helper functions related to "avl-balancing", "remove-find-
     }
 
     /// Verifies if a rotation is needed
-    void balance(long node_pos, Node<KeyType> &node) {
+    void balance(long node_pos, Node<KeyType> &node)
+    {
         long bf = balancing_factor(node); //< Calculates the balancing factor
 
         // If the balancing factor is greater or equal than 2, then the tree is unbalanced to the left
@@ -218,7 +128,8 @@ private: // Secondary helper functions related to "avl-balancing", "remove-find-
         }
     }
 
-    void right_rotation(long node_pos, Node<KeyType> &node) {
+    void right_rotation(long node_pos, Node<KeyType> &node)
+    {
         Node<KeyType> left{};
         long l_pos = node.left;
 
@@ -238,7 +149,8 @@ private: // Secondary helper functions related to "avl-balancing", "remove-find-
         update_height(node_pos, left);
     }
 
-    void left_rotation(long node_pos, Node<KeyType> &node) {
+    void left_rotation(long node_pos, Node<KeyType> &node)
+    {
         Node<KeyType> right{};
         long r_pos = node.right;
 
@@ -261,7 +173,8 @@ private: // Secondary helper functions related to "avl-balancing", "remove-find-
     /// Helper function for `remove`.
     /// Is only called when the node to delete has both left and right sub-trees.
     /// This helper function receives the `node.right` pointer and goes to his leftmost child (the successor).
-    Node<KeyType> find_successor(long right_ref) {
+    Node<KeyType> find_successor(long right_ref)
+    {
         Node<KeyType> node;
 
         SEEK_ALL(file, right_ref)
@@ -278,11 +191,11 @@ private: // Secondary helper functions related to "avl-balancing", "remove-find-
     }
 
 private: // Recursive main helper functions: search, insert, remove and range-search
-
     /*******************************************************************************
     * Descends the tree until the record is found or a DISK_NULL node is reached   *
     ********************************************************************************/
-    void search(long node_pos, KeyType key, std::vector<long> &pointers) {
+    void search(long node_pos, KeyType key, std::vector<long> &pointers)
+    {
         /* Base case (I): If this condition is true, it means that the `key` do not exist. */
         if (node_pos == DISK_NULL) {
             return;
@@ -310,7 +223,8 @@ private: // Recursive main helper functions: search, insert, remove and range-se
     * record information at the end of the file and recursively reassign the       *
     * father physical pointer.                                                     *
     ********************************************************************************/
-    long insert(long node_pos, KeyType key, long pointer) {
+    long insert(long node_pos, KeyType key, long pointer)
+    {
         /* Base case (I): If this condition is true, a place for the new record was found. */
         if (node_pos == DISK_NULL) {
             // Creates the node and open the file in append mode
@@ -356,14 +270,14 @@ private: // Recursive main helper functions: search, insert, remove and range-se
             SEEK_ALL_RELATIVE(file, 0, std::ios::end)
             Node<KeyType> insertion_node(key, pointer); //< The node to be inserted
             insertion_node.next = node.next;            //< Moves the pointer to the new record node
-            long insertion_pos = file.tellp();          //< Stores the position where the new record begins
-            file << insertion_node;                     //< Inserts the record
+            long insertion_pos = file.tellp(); //< Stores the position where the new record begins
+            file << insertion_node;            //< Inserts the record
 
             SEEK_ALL(file, node_pos)
-            node.next = insertion_pos;                  //< Update the new `next`
-            file << node;                               //< Writes the last node new pointer
+            node.next = insertion_pos; //< Update the new `next`
+            file << node;              //< Writes the last node new pointer
 
-            return EXIT_SUCCESS;                        //< Not tree balancing is needed when inserting a repeated key
+            return EXIT_SUCCESS; //< Not tree balancing is needed when inserting a repeated key
         }
 
         /*******************************************************************************
@@ -381,8 +295,8 @@ private: // Recursive main helper functions: search, insert, remove and range-se
         return EXIT_SUCCESS; //< After reading this line, the algorithm goes to the previous state
     }
 
-
-    int remove(long node_pos, KeyType key, std::vector<long> &pointers) {
+    int remove(long node_pos, KeyType key, std::vector<long> &pointers)
+    {
         if (node_pos == DISK_NULL) {
             std::stringstream ss;
             ss << "The record with the key: " << key << " do not exists";
@@ -460,7 +374,11 @@ private: // Recursive main helper functions: search, insert, remove and range-se
         return NOT_DETACH;
     }
 
-    void range_search(long node_pos, KeyType lower_bound, KeyType upper_bound, std::vector<long> &pointers) {
+    void range_search(long node_pos,
+                      KeyType lower_bound,
+                      KeyType upper_bound,
+                      std::vector<long> &pointers)
+    {
         if (node_pos == DISK_NULL) {
             return;
         }
@@ -482,26 +400,42 @@ private: // Recursive main helper functions: search, insert, remove and range-se
         }
     }
 
-    void _insert(KeyType key, long pointer) {
+    void _insert(KeyType key, long pointer)
+    {
         long inserted_position = this->insert(root, key, pointer);
         root = ((root == DISK_NULL) ? inserted_position : root);
     }
 
 public:
-
     // Initializes all the member variables and, if the index exists, assigns the root with the initial record
-    explicit AVLFile(std::string heap_file_name, std::string index_file_name,
-                     bool is_key, Index _index, Greater _greater = Greater())
-        : root(DISK_NULL), index(_index), greater(_greater), primary_key(is_key),
-        file_name(std::move(index_file_name)), heap_file_name(std::move(heap_file_name)) {
+    explicit AVLFile(const std::string &heap_file_name,
+                     const std::string &attribute,
+                     bool is_key,
+                     Index _index,
+                     Greater _greater = Greater())
+        : root(DISK_NULL)
+        , index(_index)
+        , greater(_greater)
+        , primary_key(is_key)
+        , heap_file_name(heap_file_name)
+    {
+        file_name = heap_file_name + "_" + attribute + ".avl";
+        file.open(file_name, std::ios::app | std::ios::binary);
+        file.close();
+
         if (*this) {
             root = INITIAL_RECORD;
         }
     }
 
-    void create_index() {
-        std::fstream heap_file(heap_file_name, std::ios::in | std::ios::binary);
+    void create_index()
+    {
+        file.open(file_name, std::ios::out);
+        root = DISK_NULL;
+        file.close();
+
         file.open(file_name, flags);
+        std::fstream heap_file(heap_file_name, std::ios::in | std::ios::binary);
 
         RecordType record;
         long seek = INITIAL_RECORD;
@@ -516,7 +450,8 @@ public:
         heap_file.close();
     }
 
-    explicit operator bool() {
+    explicit operator bool()
+    {
         file.open(file_name, std::ios::app);
         long size = file.tellp();
         file.close();
@@ -528,7 +463,8 @@ public:
     /*******************************************************************************
     * Inserts a new pointer in the index file.                                     *
     ********************************************************************************/
-    void insert(KeyType key, long pointer) {
+    void insert(KeyType key, long pointer)
+    {
         file.open(file_name, flags);
         _insert(key, pointer);
         file.close();
@@ -537,7 +473,8 @@ public:
     /*******************************************************************************
     * Finds the pointer(s) associated to the `key`.                                *
     ********************************************************************************/
-    std::vector<RecordType> search(KeyType key) {
+    std::vector<RecordType> search(KeyType key)
+    {
         std::vector<long> pointers;
         file.open(file_name, std::ios::in | std::ios::binary);
         this->search(root, key, pointers);
@@ -547,7 +484,7 @@ public:
         records.reserve(pointers.size());
 
         std::fstream heap_file(heap_file_name, std::ios::in | std::ios::binary);
-        for (long pointer: pointers) {
+        for (long pointer : pointers) {
             RecordType record;
             heap_file.seekg(pointer);
             heap_file.read((char *) &record, sizeof(RecordType));
@@ -564,7 +501,8 @@ public:
     /*******************************************************************************
     * Finds the pointer(s) such that lower_bound <= `node.key` <= upper_bound.     *
     ********************************************************************************/
-    std::vector<RecordType> range_search(KeyType lower_bound, KeyType upper_bound) {
+    std::vector<RecordType> range_search(KeyType lower_bound, KeyType upper_bound)
+    {
         std::vector<long> pointers;
         file.open(file_name, std::ios::in | std::ios::binary);
         this->range_search(root, lower_bound, upper_bound, pointers);
@@ -574,7 +512,7 @@ public:
         records.reserve(pointers.size());
 
         std::fstream heap_file(heap_file_name, std::ios::in | std::ios::binary);
-        for (long pointer: pointers) {
+        for (long pointer : pointers) {
             RecordType record;
             heap_file.seekg(pointer);
             heap_file.read((char *) &record, sizeof(RecordType));
@@ -591,14 +529,15 @@ public:
     /*******************************************************************************
     * Removes logically all the pointers associated to the `key`                   *
     ********************************************************************************/
-    void remove(KeyType key) {
+    void remove(KeyType key)
+    {
         std::vector<long> pointers;
         file.open(file_name, flags);
         int detach_root = this->remove(this->root, key, pointers);
         file.close();
 
         std::fstream heap_file(heap_file_name, flags);
-        for (long pointer: pointers) {
+        for (long pointer : pointers) {
             RecordType record{};
             SEEK_ALL(heap_file, pointer);
             heap_file.read((char *) &record, sizeof(RecordType));
@@ -615,7 +554,8 @@ public:
         }
     }
 
-    void bfs() {
+    void bfs()
+    {
         file.open(file_name, flags);
         Node<KeyType> root_node;
         SEEK_ALL(file, INITIAL_RECORD)

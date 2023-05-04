@@ -1,10 +1,12 @@
 #ifndef EXTENDIBLE_HASH_EXTENDIBLEHASHFILE_HPP
 #define EXTENDIBLE_HASH_EXTENDIBLEHASHFILE_HPP
 
+#include "utils.hpp"
 #include <bitset>
 #include <cmath>
 #include <cstring>
 #include <fstream>
+#include <sstream>
 #include <vector>
 
 /*
@@ -63,42 +65,6 @@ template<typename KeyType>
 constexpr long MAX_RECORDS_PER_BUCKET = (BLOCK_SIZE - 2 * sizeof(long)) / sizeof(long);
 
 #define MAX_RECORDS_PER_BUCKET MAX_RECORDS_PER_BUCKET<KeyType>
-
-
-/*
- * Utils
- */
-
-namespace func {
-
-template<typename T>
-void copy(T &a, const T &b) {
-    std::memcpy((char *) &a, (char *) &b, sizeof(T));
-}
-
-template<typename T>
-void copy(T &a, T &b) {
-    std::memcpy((char *) &a, (char *) &b, sizeof(T));
-}
-
-template<typename T>
-void copy(T &a, char *&b) {
-    std::memcpy((char *) &a, b, sizeof(T));
-}
-
-void read_buffer(char buffer[], int size) {
-    std::string temp;
-    std::getline(std::cin >> std::ws, temp, '\n');
-    std::cin.clear();
-
-    for (int i = 0; i < size; ++i) {
-        buffer[i] = (i < temp.size()) ? temp[i] : '\0';
-    }
-
-    buffer[size - 1] = '\0';
-}
-}// namespace func
-
 
 /*
  * Class/Struct definitions

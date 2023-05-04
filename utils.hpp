@@ -2,8 +2,33 @@
 #define UTILS_HPP
 
 #include <chrono>
+#include <cstring>
 #include <fstream>
+#include <iostream>
+#include <string>
 #include <vector>
+
+namespace func {
+
+template<typename T>
+void copy(T &a, const T &b)
+{
+    std::memcpy((char *) &a, (char *) &b, sizeof(T));
+}
+
+template<typename T>
+void copy(T &a, T &b)
+{
+    std::memcpy((char *) &a, (char *) &b, sizeof(T));
+}
+
+template<typename T>
+void copy(T &a, char *&b)
+{
+    std::memcpy((char *) &a, b, sizeof(T));
+}
+
+} // namespace func
 
 template<typename Return>
 struct TimedResult
@@ -37,15 +62,18 @@ TimedResult<void> time_function(Fun &function, Args... args) {
     return {duration};
 }
 
-template<typename KeyType, typename RecordType, typename Index>
-std::vector<RecordType> linear_search(std::string filename, KeyType &key, Index &index)
+template<typename KeyType, typename RecordType, typename Index, typename Equal = std::equal_to<KeyType>>
+std::vector<RecordType> linear_search(std::string filename,
+                                      KeyType key,
+                                      Index index,
+                                      Equal equal = std::equal_to<KeyType>{})
 {
     std::vector<RecordType> result;
     std::fstream file(filename, std::ios::in | std::ios::binary);
     while (!file.eof()) {
         RecordType tmp{};
         file.read((char *) &tmp, sizeof(tmp));
-        if (!file.eof() && index(tmp) == key) {
+        if (!file.eof() && equal(index(tmp), key)) {
             result.push_back(tmp);
         }
     }

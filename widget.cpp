@@ -1,12 +1,12 @@
 #include "widget.h"
-#include "parser.h"
-#include "ExtendibleHashFile.hpp"
-#include "avl.hpp"
-#include "MovieRecord.h"
-#include <QtGui>
 #include <QHeaderView>
-#include "utils.hpp"
 #include <QtConcurrent>
+#include <QtGui>
+#include "ExtendibleHashFile.hpp"
+#include "MovieRecord.h"
+#include "avl.hpp"
+#include "parser.hpp"
+#include "utils.hpp"
 
 const std::string FILENAME = "database/movies_and_series.dat";
 
@@ -19,10 +19,7 @@ const std::string FILENAME = "database/movies_and_series.dat";
                                                                              attribute2, \
                                                                              isPrimaryKey, \
                                                                              index}; \
-        AVLFile<attributeType, MovieRecord> avl(FILENAME, \
-                                                "avl_indexed_by_dataId.dat", \
-                                                isPrimaryKey, \
-                                                index); \
+        AVLFile<attributeType, MovieRecord> avl(FILENAME, attribute2, isPrimaryKey, index); \
         auto attributeResult = static_cast<attributeType>( \
             std::stof(queryResult.atributos[queryResult.selectedAttribute])); \
         if (extendible_hash_index) { \
@@ -61,48 +58,51 @@ const std::string FILENAME = "database/movies_and_series.dat";
                            std::function<bool(char[attributeCharSize], char[attributeCharSize])>, \
                            std::function<std::size_t(char[attributeCharSize])>> \
             extendible_hash_index{FILENAME, attribute2, isPrimaryKey, index, equal, hash}; \
+        std::string attributeResult = queryResult.atributos[queryResult.selectedAttribute]; \
+        std::cout << "Result from parser: " << attributeResult << std::endl; \
+        char buf[attributeCharSize]; \
+        int i = 0; \
+        for (; i <= attributeResult.length() - 3; i++) { \
+            buf[i] = attributeResult[i + 1]; \
+        } \
+        buf[i] = '\0'; \
+        std::cout << "After removing things: " << buf << std::endl; \
         if (extendible_hash_index) { \
-            std::string tmp = queryResult.atributos[queryResult.selectedAttribute]; \
-            std::cout << "Result from parser: " << tmp << std::endl; \
-            char str[attributeCharSize + 2]; \
-            int i = 0; \
-            for (; i <= tmp.length() - 3; i++) { \
-                str[i] = tmp[i + 1]; \
-            } \
-            str[i] = '\0'; \
-            std::cout << "After removing things: " << str << std::endl; \
-            auto res = extendible_hash_index.search(str); \
+            std::cout << "Using Hash" << std::endl; \
+            auto res = extendible_hash_index.search(buf); \
             this->displayRecords(res); \
         } else { \
-            std::cout << "Busqueda lineal suas" << std::endl; \
+            std::cout << "Using linear search." << std::endl; \
+            auto res = linear_search<char[attributeCharSize], \
+                                     MovieRecord, \
+                                     decltype(index), \
+                                     decltype(equal)>(FILENAME, buf, index, equal); \
+            this->displayRecords(res); \
         } \
     }
 
 #define CREATE_INDEX_BY_ATTRIBUTE(attribute1, attribute2, attributeType, isPrimaryKey) \
-if(queryResult.selectedAttribute == attribute2){ \
-    if(queryResult.indexValue == "Hash"){ \
-        std::function<attributeType(MovieRecord &)> index = [=](MovieRecord &record) { return record.attribute1; }; \
-        ExtendibleHashFile<attributeType, MovieRecord> extendible_hash_index{FILENAME, attribute2, isPrimaryKey, index}; \
-        if(extendible_hash_index){ \
-        std::cout << attribute2 << " index already exists with Hash" << std::endl; \
-        }\
-        else{\
-            extendible_hash_index.create_index(); \
-        }\
-    } \
-    else if(queryResult.indexValue == "AVL"){ \
-        std::function<attributeType(MovieRecord &)> index = [](MovieRecord &movie) { return movie.attribute1; }; \
-        AVLFile<attributeType, MovieRecord> avl(FILENAME, "avl_indexed_by_dataId.dat", isPrimaryKey, index); \
-        func::clock clock; \
-        clock([&](){ \
-            if (!avl) { \
-                avl.create_index(); \
+    if (queryResult.selectedAttribute == attribute2) { \
+        if (queryResult.indexValue == "Hash") { \
+            std::function<attributeType(MovieRecord &)> index = [=](MovieRecord &record) { \
+                return record.attribute1; \
+            }; \
+            ExtendibleHashFile<attributeType, MovieRecord> extendible_hash_index{FILENAME, \
+                                                                                 attribute2, \
+                                                                                 isPrimaryKey, \
+                                                                                 index}; \
+            if (extendible_hash_index) { \
+                std::cout << attribute2 << " index already exists with Hash" << std::endl; \
             } else { \
-                std::cout << "AVL Index already exists" << std::endl;  \
+                extendible_hash_index.create_index(); \
             } \
-        }, "Create AVL Index by data id"); \
-    } \
-}
+        } else if (queryResult.indexValue == "AVL") { \
+            std::function<attributeType(MovieRecord &)> index = [](MovieRecord &movie) { \
+                return movie.attribute1; \
+            }; \
+            AVLFile<attributeType, MovieRecord> avl(FILENAME, attribute2, isPrimaryKey, index); \
+        } \
+    }
 
 #define CREATE_INDEX_BY_ATTRIBUTE_CHAR(attribute1, attribute2, attributeCharSize, isPrimaryKey) \
     if (queryResult.selectedAttribute == attribute2) { \
@@ -143,7 +143,6 @@ Widget::Widget(QWidget *parent)
     boton = new QPushButton("Enviar");
     tabla->setColumnCount(11);
     tabla->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    //------------------------------
     consulta->setGeometry(0,0,200,200);
     consulta->setPlaceholderText("Ingrese consulta: ");
     H1->addWidget(consulta);
@@ -155,10 +154,6 @@ Widget::Widget(QWidget *parent)
     global->addLayout(H1);
     global->addWidget(tabla);
     global->addLayout(H2);
-    //-------------------------------
-    //Setear el numero de filas
-    //tabla->setRowCount()
-    //-------------------------------
     connect(boton,SIGNAL(clicked()),this,SLOT(SetQuery()));
 }
 
@@ -166,13 +161,17 @@ Widget::~Widget()
 {
 }
 
-void Widget::SetQuery(){
+void Widget::SetQuery()
+{
     QFuture<void> result = QtConcurrent::run([this]() {
-        auto operation = [&](){
-            this->execute_action();
-        };
+        this->boton->setEnabled(false);
+        this->tiempoResult->setText(tr("Ejecutando consulta..."));
+        this->tiempoResult->setStyleSheet("color: blue;");
+        auto operation = [&]() { this->execute_action(); };
         TimedResult r = time_function(operation);
         this->update_time(r);
+        this->tiempoResult->setStyleSheet("color: black;");
+        this->boton->setEnabled(true);
     });
 }
 
@@ -200,7 +199,7 @@ void Widget::execute_action()
     try {
         queryResult = parsero.query(consulta->text().toStdString());
         result->setText(consulta->text());
-        result->setStyleSheet("color: black");
+        result->setStyleSheet("color: black;");
     } catch (std::runtime_error e) {
         result->setText("Sentencia SQL inválida.");
         result->setStyleSheet("color: red;");

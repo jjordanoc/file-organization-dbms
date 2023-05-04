@@ -15,13 +15,14 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Concurrent)
 set(PROJECT_SOURCES
         main.cpp
         widget.cpp
-        parser.h
         ExtendibleHashFile.hpp
         avl.hpp
         MovieRecord.h
         widget.h
         widget.ui
         utils.hpp
+        parser.hpp
+        node.hpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

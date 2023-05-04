@@ -2,15 +2,15 @@
 #ifndef WIDGET_H
 #define WIDGET_H
 
-#include <QWidget>
-#include <QTableWidget>
-#include <QPushButton>
-#include <QLabel>
 #include <QHBoxLayout>
-#include <QVBoxLayout>
+#include <QLabel>
 #include <QLineEdit>
-#include "parser.h"
+#include <QPushButton>
+#include <QTableWidget>
+#include <QVBoxLayout>
+#include <QWidget>
 #include "MovieRecord.h"
+#include "parser.hpp"
 #include "utils.hpp"
 QT_BEGIN_NAMESPACE
 namespace Ui { class Widget; }
@@ -39,6 +39,7 @@ private:
     QLabel *tiempoResult;
     QPushButton *boton;
     parserSQL parsero;
+
     void displayRecords(std::vector<MovieRecord> &);
     void execute_action();
     template<typename T>
