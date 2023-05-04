@@ -99,9 +99,8 @@ struct parserSQL {
     }
 
     void value() {
-
-        if (regex_match(token, std::regex("(-?[0-9.a-zA-Z]*)")) ||
-            regex_match(token, std::regex(R"((["(][()\s+a-z,.0-9A-Z:;\"\']*[")]))"))) {
+        if (regex_match(token, std::regex("(-?[0-9.a-zA-Z]*)"))
+            || regex_match(token, std::regex(R"((["(][()\s-+a-z,.0-9A-Z:;\"\']*[")]))"))) {
             getToken();
         } else {
             error();

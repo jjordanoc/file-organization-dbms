@@ -58,6 +58,12 @@ const std::string FILENAME = "database/movies_and_series.dat";
                            std::function<bool(char[attributeCharSize], char[attributeCharSize])>, \
                            std::function<std::size_t(char[attributeCharSize])>> \
             extendible_hash_index{FILENAME, attribute2, isPrimaryKey, index, equal, hash}; \
+        std::function<bool(char[attributeCharSize], char[attributeCharSize])> greater = \
+            [](char a[attributeCharSize], char b[attributeCharSize]) -> bool { \
+            return std::string(a) > std::string(b); \
+        }; \
+        AVLFile<char[attributeCharSize], MovieRecord, decltype(index), decltype(greater)> \
+            avl(FILENAME, attribute2, false, index, greater); \
         std::string attributeResult = queryResult.atributos[queryResult.selectedAttribute]; \
         std::cout << "Result from parser: " << attributeResult << std::endl; \
         char buf[attributeCharSize]; \
@@ -70,6 +76,10 @@ const std::string FILENAME = "database/movies_and_series.dat";
         if (extendible_hash_index) { \
             std::cout << "Using Hash" << std::endl; \
             auto res = extendible_hash_index.search(buf); \
+            this->displayRecords(res); \
+        } else if (avl) { \
+            std::cout << "Using AVL" << std::endl; \
+            auto res = avl.search(buf); \
             this->displayRecords(res); \
         } else { \
             std::cout << "Using linear search." << std::endl; \
@@ -111,13 +121,13 @@ const std::string FILENAME = "database/movies_and_series.dat";
 
 #define CREATE_INDEX_BY_ATTRIBUTE_CHAR(attribute1, attribute2, attributeCharSize, isPrimaryKey) \
     if (queryResult.selectedAttribute == attribute2) { \
+        std::function<char *(MovieRecord &)> index = [=](MovieRecord &record) { \
+            return record.attribute1; \
+        }; \
         if (queryResult.indexValue == "Hash") { \
             std::function<bool(char[attributeCharSize], char[attributeCharSize])> equal = \
                 [](char a[attributeCharSize], char b[attributeCharSize]) -> bool { \
                 return std::string(a) == std::string(b); \
-            }; \
-            std::function<char *(MovieRecord &)> index = [=](MovieRecord &record) { \
-                return record.attribute1; \
             }; \
             std::hash<std::string> hasher; \
             std::function<std::size_t(char[attributeCharSize])> hash = \
@@ -129,7 +139,23 @@ const std::string FILENAME = "database/movies_and_series.dat";
                                std::function<bool(char[attributeCharSize], char[attributeCharSize])>, \
                                std::function<std::size_t(char[attributeCharSize])>> \
                 extendible_hash_index{FILENAME, attribute2, isPrimaryKey, index, equal, hash}; \
-            extendible_hash_index.create_index(); \
+            if (extendible_hash_index) { \
+                std::cout << attribute2 << "Index already exists with Hash" << std::endl; \
+            } else { \
+                extendible_hash_index.create_index(); \
+            } \
+        } else if (queryResult.indexValue == "AVL") { \
+            std::function<bool(char[attributeCharSize], char[attributeCharSize])> greater = \
+                [](char a[attributeCharSize], char b[attributeCharSize]) -> bool { \
+                return std::string(a) > std::string(b); \
+            }; \
+            AVLFile<char[attributeCharSize], MovieRecord, decltype(index), decltype(greater)> \
+                avl(FILENAME, attribute2, false, index, greater); \
+            if (avl) { \
+                std::cout << attribute2 << "Index already exists with AVL" << std::endl; \
+            } else { \
+                avl.create_index(); \
+            } \
         } \
     }
 
