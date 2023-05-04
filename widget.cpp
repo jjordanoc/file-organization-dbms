@@ -3,6 +3,7 @@
 #include <QtConcurrent>
 #include <QtGui>
 #include "ExtendibleHashFile.hpp"
+#include "ISAM.hpp"
 #include "MovieRecord.h"
 #include "avl.hpp"
 #include "parser.hpp"
@@ -25,17 +26,17 @@ const std::string FILENAME = "database/movies_and_series.dat";
         if (extendible_hash_index) { \
             std::cout << "Using Hash" << std::endl; \
             auto res = extendible_hash_index.search(attributeResult); \
-            this->displayRecords(res); \
+            queryRecords = res; \
         } else if (avl) { \
             std::cout << "Using AVL" << std::endl; \
             auto res = avl.search(attributeResult); \
-            this->displayRecords(res); \
+            queryRecords = res; \
         } else { \
             std::cout << "Using linear search." << std::endl; \
             auto res = linear_search<attributeType, MovieRecord, decltype(index)>(FILENAME, \
                                                                                   attributeResult, \
                                                                                   index); \
-            this->displayRecords(res); \
+            queryRecords = res; \
         } \
     }
 
@@ -76,18 +77,18 @@ const std::string FILENAME = "database/movies_and_series.dat";
         if (extendible_hash_index) { \
             std::cout << "Using Hash" << std::endl; \
             auto res = extendible_hash_index.search(buf); \
-            this->displayRecords(res); \
+            queryRecords = res; \
         } else if (avl) { \
             std::cout << "Using AVL" << std::endl; \
             auto res = avl.search(buf); \
-            this->displayRecords(res); \
+            queryRecords = res; \
         } else { \
             std::cout << "Using linear search." << std::endl; \
             auto res = linear_search<char[attributeCharSize], \
                                      MovieRecord, \
                                      decltype(index), \
                                      decltype(equal)>(FILENAME, buf, index, equal); \
-            this->displayRecords(res); \
+            queryRecords = res; \
         } \
     }
 
@@ -102,14 +103,14 @@ const std::string FILENAME = "database/movies_and_series.dat";
         if (avl) { \
             std::cout << "Using AVL" << std::endl; \
             auto res = avl.range_search(rangeStart, rangeEnd); \
-            this->displayRecords(res); \
+            queryRecords = res; \
         } else { \
             std::cout << "Using linear search." << std::endl; \
             auto res = range_search<attributeType, MovieRecord, decltype(index)>(FILENAME, \
                                                                                  rangeStart, \
                                                                                  rangeEnd, \
                                                                                  index); \
-            this->displayRecords(res); \
+            queryRecords = res; \
         } \
     }
 
@@ -204,6 +205,67 @@ const std::string FILENAME = "database/movies_and_series.dat";
         } \
     }
 
+#define INSERT_VALUE_BY_ATTRIBUTE(attribute1, \
+                                  attribute2, \
+                                  attributeType, \
+                                  isPrimaryKey, \
+                                  recordInserted, \
+                                  pos) \
+    if (queryResult.selectedAttribute == attribute2) { \
+        std::function<attributeType(MovieRecord &)> index = [=](MovieRecord &record) { \
+            return record.attribute1; \
+        }; \
+        ExtendibleHashFile<attributeType, MovieRecord> extendible_hash_index{FILENAME, \
+                                                                             attribute2, \
+                                                                             isPrimaryKey, \
+                                                                             index}; \
+        AVLFile<attributeType, MovieRecord> avl(FILENAME, attribute2, isPrimaryKey, index); \
+        if (extendible_hash_index) { \
+            extendible_hash_index.insert(recordInserted, pos); \
+        } \
+        if (avl) { \
+            avl.insert(index(recordInserted), pos); \
+        } \
+    }
+
+#define INSERT_VALUE_BY_ATTRIBUTE_CHAR(attribute1, \
+                                       attribute2, \
+                                       attributeCharSize, \
+                                       isPrimaryKey, \
+                                       recordInserted, \
+                                       pos) \
+    if (queryResult.selectedAttribute == attribute2) { \
+        std::function<char *(MovieRecord &)> index = [=](MovieRecord &record) { \
+            return record.attribute1; \
+        }; \
+        std::function<bool(char[attributeCharSize], char[attributeCharSize])> equal = \
+            [](char a[attributeCharSize], char b[attributeCharSize]) -> bool { \
+            return std::string(a) == std::string(b); \
+        }; \
+        std::hash<std::string> hasher; \
+        std::function<std::size_t(char[attributeCharSize])> hash = \
+            [&hasher](char key[attributeCharSize]) { return hasher(std::string(key)); }; \
+        ExtendibleHashFile<char[attributeCharSize], \
+                           MovieRecord, \
+                           16, \
+                           std::function<char *(MovieRecord &)>, \
+                           std::function<bool(char[attributeCharSize], char[attributeCharSize])>, \
+                           std::function<std::size_t(char[attributeCharSize])>> \
+            extendible_hash_index{FILENAME, attribute2, isPrimaryKey, index, equal, hash}; \
+        std::function<bool(char[attributeCharSize], char[attributeCharSize])> greater = \
+            [](char a[attributeCharSize], char b[attributeCharSize]) -> bool { \
+            return std::string(a) > std::string(b); \
+        }; \
+        AVLFile<char[attributeCharSize], MovieRecord, decltype(index), decltype(greater)> \
+            avl(FILENAME, attribute2, false, index, greater); \
+        if (extendible_hash_index) { \
+            extendible_hash_index.insert(recordInserted, pos); \
+        } \
+        if (avl) { \
+            avl.insert(index(recordInserted), pos); \
+        } \
+    }
+
 Widget::Widget(QWidget *parent)
     : QWidget(parent)
 {
@@ -233,6 +295,11 @@ Widget::Widget(QWidget *parent)
     connect(boton, SIGNAL(clicked()), this, SLOT(SetQuery()));
     connect(&this->futureWatcher, &QFutureWatcher<void>::finished, this, &Widget::onQueryFinished);
     connect(&this->futureWatcher, &QFutureWatcher<void>::started, this, &Widget::onQueryStarted);
+    //    std::function<int(MovieRecord &)> index = [=](MovieRecord &record) { return record.dataId; };
+    //    ISAM<true, int, MovieRecord> isam{FILENAME, "dataId", index};
+    //    if (!isam) {
+    //        isam.create_index();
+    //    }
 }
 
 Widget::~Widget()
@@ -251,6 +318,7 @@ void Widget::SetQuery()
 
 void Widget::onQueryFinished()
 {
+    this->displayRecords(queryRecords);
     this->tiempoResult->setStyleSheet("color: black;");
     this->boton->setEnabled(true);
 }
@@ -288,9 +356,6 @@ void Widget::execute_action()
         result->setText(consulta->text());
         result->setStyleSheet("color: black;");
     } catch (std::runtime_error e) {
-        result->setText("Sentencia SQL inválida.");
-        result->setStyleSheet("color: red;");
-    } catch (std::range_error e) {
         result->setText("Sentencia SQL inválida.");
         result->setStyleSheet("color: red;");
     }
@@ -338,10 +403,79 @@ void Widget::execute_action()
         DELETE_BY_ATTRIBUTE(votes, "votes", int, false);
         DELETE_BY_ATTRIBUTE(rating, "rating", float, false);
         DELETE_BY_ATTRIBUTE(gross, "gross", int, false);
+    } else if (queryResult.queryType == "INSERT") {
+        MovieRecord record;
+        record.dataId = stoi(queryResult.atributos["dataId"]);
+
+        std::string tmp = queryResult.atributos["contentType"];
+        char str[16];
+        int i = 0;
+        for (; i <= tmp.length() - 3; i++) {
+            str[i] = tmp[i + 1];
+        }
+        str[i] = '\0';
+
+        for (int i = 0; i <= 15; i++) {
+            record.contentType[i] = str[i];
+        }
+
+        tmp = queryResult.atributos["title"];
+        char str2[256];
+        i = 0;
+        for (; i <= tmp.length() - 3; i++) {
+            str2[i] = tmp[i + 1];
+        }
+        str2[i] = '\0';
+
+        for (int i = 0; i <= 255; i++) {
+            record.title[i] = str2[i];
+        }
+
+        record.length = stoi(queryResult.atributos["length"]);
+        record.releaseYear = stoi(queryResult.atributos["releaseYear"]);
+        record.endYear = stoi(queryResult.atributos["endYear"]);
+        record.votes = stoi(queryResult.atributos["votes"]);
+        record.rating = stof(queryResult.atributos["rating"]);
+        record.gross = stoi(queryResult.atributos["gross"]);
+
+        tmp = queryResult.atributos["certificate"];
+        char str3[16];
+        i = 0;
+        for (; i <= tmp.length() - 3; i++) {
+            str3[i] = tmp[i + 1];
+        }
+        str3[i] = '\0';
+
+        for (int i = 0; i <= 15; i++) {
+            record.certificate[i] = str3[i];
+        }
+
+        tmp = queryResult.atributos["description"];
+        char str4[512];
+        i = 0;
+        for (; i <= tmp.length() - 3; i++) {
+            str4[i] = tmp[i + 1];
+        }
+        str4[i] = '\0';
+
+        for (int i = 0; i <= 511; i++) {
+            record.description[i] = str4[i];
+        }
+
+        long position = insert_register_on_file<MovieRecord>(FILENAME, record);
+        INSERT_VALUE_BY_ATTRIBUTE(dataId, "dataId", int, true, record, position);
+        INSERT_VALUE_BY_ATTRIBUTE_CHAR(contentType, "contentType", 16, false, record, position);
+        INSERT_VALUE_BY_ATTRIBUTE_CHAR(title, "title", 256, false, record, position);
+        INSERT_VALUE_BY_ATTRIBUTE(length, "length", short, false, record, position);
+        INSERT_VALUE_BY_ATTRIBUTE(releaseYear, "releaseYear", short, false, record, position);
+        INSERT_VALUE_BY_ATTRIBUTE(endYear, "endYear", short, false, record, position);
+        INSERT_VALUE_BY_ATTRIBUTE(votes, "votes", int, false, record, position);
+        INSERT_VALUE_BY_ATTRIBUTE(rating, "rating", short, false, record, position);
+        INSERT_VALUE_BY_ATTRIBUTE(gross, "gross", int, false, record, position);
+        INSERT_VALUE_BY_ATTRIBUTE_CHAR(certificate, "certificate", 16, false, record, position);
+        INSERT_VALUE_BY_ATTRIBUTE_CHAR(description, "description", 512, false, record, position);
     }
 }
-
-
 
 template<typename T>
 void Widget::update_time(TimedResult<T> &r)

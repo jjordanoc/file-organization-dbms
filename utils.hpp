@@ -101,4 +101,16 @@ std::vector<RecordType> range_search(std::string filename,
     return result;
 }
 
+template<typename RecordType>
+long insert_register_on_file(std::string filename, RecordType &record)
+{
+    std::fstream file(filename, std::ios::out | std::ios::binary | std::ios::in);
+    file.seekp(0, std::ios::end);
+    long pos = file.tellp();
+    file.write((char *) &record, sizeof(record));
+    file << std::flush;
+    file.close();
+    return pos;
+}
+
 #endif

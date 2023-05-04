@@ -23,6 +23,8 @@ set(PROJECT_SOURCES
         utils.hpp
         parser.hpp
         node.hpp
+        ISAM.hpp
+        pages.hpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
